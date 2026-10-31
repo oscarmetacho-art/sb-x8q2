@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Charadas Cumpleañeras</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #FBF3E4; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<script>
+// ============ Charadas Cumpleañeras ============
+const VW = 1920, VH = 1080;                       // lienzo virtual 16:9
+const C = { bg: '#FBF3E4', bg2: '#F2E5CC', ink: '#5A4632', gold: '#C9A24B', gold2: '#F0D98C', pink: '#F5CBD2',
+            mint: '#BFE3CC', green: '#8ED1A5', red: '#F2A7A0', lav: '#DCD0EE', white: '#FFFDF8', peach: '#F8DCC0' };
+const PASTELS = [C.pink, C.mint, C.lav, C.peach, C.gold2];
+const PIX = "'Press Start 2P', 'Courier New', monospace";
+const SOFT = "'Fredoka', 'Trebuchet MS', Arial, sans-serif";
+const TURN_SECONDS = 60;
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let SC = 1, OX = 0, OY = 0;
+function resize() {
+  cv.width = Math.min(2560, innerWidth); cv.height = Math.min(1440, innerHeight);
+  SC = Math.min(cv.width / VW, cv.height / VH);
+  OX = (cv.width - VW * SC) / 2; OY = (cv.height - VH * SC) / 2;
+}
+addEventListener('resize', resize); resize();
+try { document.fonts.load('30px "Press Start 2P"'); document.fonts.load('700 30px "Fredoka"'); } catch (e) {}
+
+// ---------- Datos ----------
+const FACTS = [
+  '¿Sabías que Luz tiene un proyector que nunca usa?',
+  '¿Sabías que Katyshei nunca lanzaron el juego de mesa?',
+  '¿Sabían que Brandon y Valentina nunca le dieron los zapatos a Metacho?',
+  '¿Sabías que Metacho compró una máquina de marquesitas y no la usa?',
+  '¿Y qué pasó con la cuenta del calvo de los outfits?',
+  '¿Sabías que Shei y Metacho perdieron 1.5M pagando la visa y se las negaron?',
+  'Dayana no sabe elegir maridos',
+  'Una vez Brandon y Metacho vendieron ropa interior de hombre chiviada',
+  'Tatiana y Santiago ahora viven juntos',
+  '¡Felicidades Kat y David por la camioneta!',
+  'Poderosas será un éxito',
+  'El Card Show será el mejor evento del mundo',
+  '¡Javier Suárez tiene un nuevo trabajo! Felicidades',
+  'Luz dará sesiones con la Bio-Well y se hará millonaria',
+  'Metacho usa la IA para hacer este juego y más',
+  'Laura tiene los mejores chistes de doble sentido',
+  'Hoy están reunidas las mejores mamás del mundo',
+  '¡PODEROSAS 21 DE NOVIEMBRE!',
+  'El Card Show será mejor que el SOFA y la COMIC CON juntas',
+  'David tiene una caquiligencia',
+  'Nadie aquí quiere a Diego',
+];
+const PAIR_NAMES = ['Bananas en pijama', 'Mil de pan', 'Mañana le pago', 'Aborrajado', 'Mieltertos', 'Acetaminofén',
+  'Merequetengue', 'Milhojas', '500 de salchichón', 'Pecuecas', 'Sancocho trifásico', 'Hemorroides', 'Tiroides',
+  'Calocha', 'Auyamas salvajes', 'Crispetas con melao', 'Café con pan', 'Empanada de arroz', 'Leche del D1'];
+const CATS = [
+  { name: 'NOSOTROS', words: ['Luz Amparo', 'Sheina', 'Tienda Gurús', 'Domino’s Pizza', 'Cámara Kirlian', 'Horóscopo', 'Spiderman',
+      'Cafam Floresta', 'Feid', 'Karol G', 'Shakira', 'Doña Dona', 'Card Show', 'Comer changua', 'TransMilenio', 'Evobike', 'Poderosas.org'] },
+  { name: 'PERSONAJES Y OFICIOS', words: ['Luchador de sumo', 'Director de orquesta', 'Ladrón robando', 'Futbolista simulando una falta',
+      'Mesero con una bandeja llena', 'Dentista con paciente asustado', 'Torero', 'Bailarín de ballet', 'Astronauta flotando',
+      'Cirujano operando', 'Policía de tránsito', 'Profesor de yoga', 'DJ en la discoteca', 'Payaso de semáforo',
+      'Pescador con un pez enorme', 'Vaquero domando un toro', 'Bombero rescatando un gato', 'Boxeador en el último round',
+      'Modelo en pasarela', 'Mago sacando un conejo', 'Cantante de ópera', 'Karateka rompiendo ladrillos',
+      'Fisicoculturista posando', 'Árbitro expulsando a un jugador', 'Cocinero picando cebolla'] },
+  { name: 'COMIDA Y MESA', words: ['Comer ajiaco', 'Tomar changua', 'Comer espagueti', 'Tomar sopa hirviendo', 'Comerse un ají picantísimo',
+      'Pelar una mandarina', 'Comer mango biche con sal', 'Tomar tinto caliente', 'Encontrar un pelo en la comida',
+      'Comer un helado que se derrite', 'Desmechar pollo', 'Amasar arepas', 'Comer chicharrón gigante',
+      'Jugo con pitillo tapado', 'Comer perro caliente y chorrearse', 'Lavar una montaña de platos', 'Probar el sancocho con cucharón',
+      'Comer ostras por primera vez', 'Tomar guarapo', 'Partir un pollo asado'] },
+  { name: 'SITUACIONES INCÓMODAS', words: ['Estreñimiento', 'Pisar caca de perro', 'Llegar tarde a una cita', 'Quedarse encerrado en el ascensor',
+      'Estornudo aguantado', 'Resbalarse en el baño', 'Encontrarse al ex', 'Olvidar el nombre de alguien', 'Ir al baño de urgencia',
+      'Tragarse un bicho volando', 'Ducha de agua fría', 'Sentarse en una silla rota', 'Mensaje enviado al chat equivocado',
+      'Hipo imposible de quitar', 'Calambre en la pierna', 'Buscar los lentes que tienes puestos', 'Quemarse la lengua',
+      'Dormirse en TransMilenio', 'Pasarse de copas', 'Caerse en público y fingir que nada pasó'] },
+  { name: 'ANIMALES EN ACCIÓN', words: ['Gallina poniendo un huevo', 'Perro marcando territorio', 'Gato cayéndose de la mesa', 'Pingüino resbalando',
+      'Mono rascándose', 'Perezoso subiendo un árbol', 'Elefante tomando agua', 'Flamenco en una pata', 'Cangrejo caminando',
+      'Cucaracha voladora', 'Pavo real presumiendo', 'Murciélago colgado', 'Pulpo atrapando cosas', 'León bostezando',
+      'Loro repitiendo todo', 'Vaca siendo ordeñada', 'Caballo en rodeo', 'Tiburón acechando', 'Rana saltando', 'Perro mojado sacudiéndose'] },
+  { name: 'PELÍCULAS Y SERIES', words: ['Titanic', 'El Rey León', 'Rápido y Furioso', 'Piratas del Caribe', 'Harry Potter', 'Shrek', 'Rocky',
+      'Karate Kid', 'Mi Pobre Angelito', 'Matrix', 'Parque Jurásico', 'Frozen', 'Toy Story', 'Buscando a Nemo', 'Los Increíbles',
+      'La Casa de Papel', 'Yo soy Betty, la fea', 'Rebelde', 'El juego del calamar', 'El Chavo del 8', 'Misión Imposible', 'Kung Fu Panda'] },
+  { name: 'DEPORTES', words: ['Patinaje sobre hielo', 'Clavado de trampolín', 'Esgrima', 'Lanzamiento de jabalina', 'Levantamiento de pesas',
+      'Surf', 'Ciclista subiendo una loma', 'Tenis', 'Natación sincronizada', 'Salto con garrocha', 'Tiro con arco', 'Golf',
+      'Tiro libre de baloncesto', 'Bolos', 'Lucha libre', 'Skateboarding', 'Remo', 'Carrera de relevos', 'Portero atajando un penalti'] },
+  { name: 'VIDA COLOMBIANA', words: ['Regatear en la plaza de mercado', 'Bus con vallenato a todo volumen', 'Pedir un tinto en la esquina',
+      'Mamá regañando con la chancleta', 'Gritar gol de Colombia', 'Sancocho de domingo', 'Vendedor ambulante en el bus',
+      'Hacer fila en el banco', 'Paisa vendiendo arepas', 'Costeño bailando champeta', 'Cachaco con ruana', 'Bailar cumbia',
+      'Pedir fiado en la tienda', 'Lavar el carro el domingo', 'Pelar papas con la abuela', 'Echar chisme por la ventana',
+      'Colgarse de una buseta', 'Bailar salsa pegado'] },
+  { name: 'ACCIONES RARAS', words: ['Desenredar audífonos', 'Armar un mueble de IKEA', 'Martillarse el dedo', 'Tomarse una selfie grupal',
+      'Grabar un TikTok', 'Parquear en un espacio diminuto', 'Atrapar un mosquito', 'Ver un partido muy nervioso', 'Pasar la aspiradora',
+      'Meterse al mar helado', 'Bañar a un perro', 'Cambiar un pañal', 'Enhebrar una aguja', 'Cerrar una maleta que no cierra',
+      'Secarse el pelo con secador', 'Bailar sin música', 'Cargar bolsas del mercado', 'Pelearse con un paraguas'] },
+];
+
+// ---------- Sonido (WAV generado, como en el juego del botox) ----------
+const NOTES = {
+  pop:   [[700, 120, 0.25, 'triangle', 0.5, 0]],
+  win:   [523, 659, 784, 1047].map((f, i) => [f, f, 0.18, 'square', 0.25, i * 0.12]),
+  ding:  [[880, 880, 0.1, 'square', 0.25, 0], [1320, 1320, 0.22, 'square', 0.25, 0.1]],
+  skip:  [[520, 240, 0.2, 'triangle', 0.35, 0]],
+  tick:  [[900, 900, 0.05, 'square', 0.15, 0]],
+  start: [[440, 440, 0.12, 'square', 0.25, 0], [880, 880, 0.25, 'square', 0.25, 0.14]],
+  buzz:  [[150, 80, 0.7, 'sawtooth', 0.45, 0], [150, 80, 0.7, 'square', 0.25, 0.8]],
+  fanfare: [523, 523, 523, 659, 784, 659, 784, 1047].map((f, i) => [f, f, 0.2, 'square', 0.25, i * 0.16]),
+};
+const wavUrls = {};
+function makeWav(notes) {
+  const SR = 22050;
+  const total = Math.max(...notes.map(n => n[5] + n[2])) + 0.05;
+  const N = Math.ceil(total * SR), mix = new Float32Array(N);
+  notes.forEach(([f1, f2, dur, type, vol, delay]) => {
+    let ph = 0;
+    for (let i = 0; i < N; i++) {
+      const tt = i / SR - delay; if (tt < 0 || tt > dur) continue;
+      const f = f1 * Math.pow(f2 / f1, tt / dur);
+      ph += 2 * Math.PI * f / SR;
+      const c = ph % (2 * Math.PI), x = c / (2 * Math.PI);
+      const w = type === 'square' ? (c < Math.PI ? 1 : -1) : type === 'sawtooth' ? 2 * x - 1
+              : type === 'triangle' ? 4 * Math.abs(x - 0.5) - 1 : Math.sin(c);
+      mix[i] += w * vol * Math.pow(0.0001 / vol, tt / dur);
+    }
+  });
+  const buf = new ArrayBuffer(44 + N * 2), v = new DataView(buf);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + N * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, SR, true); v.setUint32(28, SR * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, 'data'); v.setUint32(40, N * 2, true);
+  for (let i = 0; i < N; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, mix[i])) * 32767, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+for (const k in NOTES) wavUrls[k] = makeWav(NOTES[k]);
+function play(name) {
+  try { if (!wavUrls[name]) return; const a = new Audio(wavUrls[name]); a.volume = 1; const pr = a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+}
+
+// ---------- Azar sin repetir ----------
+function rnd(n) {
+  try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; } catch (e) { return Math.floor(Math.random() * n); }
+}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); const x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+let factDeck = [], lastFact = null;
+function nextFact() {
+  if (!factDeck.length) { factDeck = shuffle(FACTS.slice()); if (factDeck[factDeck.length - 1] === lastFact) factDeck.unshift(factDeck.pop()); }
+  return lastFact = factDeck.pop();
+}
+
+// ---------- Imágenes de Shei ----------
+const imgs = [new Image(), new Image()], sprites = [null, null];
+const SPW = 300;
+imgs.forEach((im, i) => {
+  im.onload = () => {
+    const c = document.createElement('canvas'); c.width = SPW; c.height = Math.round(SPW * im.height / im.width);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); sprites[i] = c;
+  };
+  im.src = 'img/shei' + (i + 1) + '.png';
+});
+const tmp = document.createElement('canvas'), tctx = tmp.getContext('2d');
+function sheiAt(idx, x, y, w, rot, alpha, shine) {
+  const sp = sprites[idx]; if (!sp) return;
+  const h = w * sp.height / sp.width;
+  let src = sp;
+  if (shine !== undefined) {                       // franja de reflejo que cruza la imagen
+    tmp.width = sp.width; tmp.height = sp.height;
+    tctx.drawImage(sp, 0, 0);
+    tctx.globalCompositeOperation = 'source-atop';
+    const p = shine * (sp.width + sp.height * 0.6) - sp.height * 0.3;
+    const g = tctx.createLinearGradient(p - 38, 0, p + 38, 26);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    tctx.fillStyle = g; tctx.fillRect(0, 0, sp.width, sp.height);
+    tctx.globalCompositeOperation = 'source-over';
+    src = tmp;
+  }
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(src, -w / 2, -h / 2, w, h); ctx.restore();
+}
+const heads = [];
+for (let i = 0; i < 12; i++) heads.push({
+  img: i % 2, x: rnd(VW), y: rnd(VH), vx: (rnd(80) + 25) * (rnd(2) ? 1 : -1), vy: (rnd(60) + 20) * (rnd(2) ? 1 : -1),
+  base: 190 + rnd(120), ph: rnd(628) / 100, sp: 0.8 + rnd(100) / 80, rs: 0.5 + rnd(100) / 100, sh: rnd(100) / 100,
+});
+function updateHeads(dt) {
+  heads.forEach(h => {
+    h.x += h.vx * dt; h.y += h.vy * dt;
+    if (h.x < 60 || h.x > VW - 60) h.vx = -h.vx;
+    if (h.y < 60 || h.y > VH - 60) h.vy = -h.vy;
+  });
+}
+function drawHeads(count, alpha) {
+  for (let i = 0; i < count; i++) {
+    const h = heads[i];
+    const w = h.base * (0.82 + 0.22 * Math.sin(t * h.sp + h.ph));
+    sheiAt(h.img, h.x, h.y, w, Math.sin(t * h.rs + h.ph) * 0.35, alpha, ((t * 0.28 + h.sh) % 1.6) / 1.6);
+  }
+}
+
+// ---------- Estado ----------
+let t = 0, now = 0, lastKeyOk = -1e9, lockUntil = 0;
+let scr = 'title', scrT = 0, selId = null, btns = [];
+let nPairs = 12, rounds = 1;
+let pairs = [], curIdx = -1, queue = [], turnNo = 0, totalTurns = 0;
+let catOn = CATS.map(() => true);
+let wordDeck = [], usedWords = new Set(), word = null, turnPts = 0, tStart = 0, lastSec = 99;
+let factNext = null, factDur = 4.5, factText = '', tickFact = '', tickBase = 0;
+let flash = { col: null, t: -9 }, revealSnd = false, lastRollIdx = -1;
+const DEF = { title: 'play', pairs: 'confirm', names: 'done', cats: 'start', intro: 'ready', play: 'ok', end: 'next', final: 'again' };
+
+function go(name) { scr = name; scrT = 0; selId = DEF[name] || null; lockUntil = performance.now() + 350; revealSnd = false; }
+function startFact(next, dur) { factNext = next; factDur = dur || 4.5; factText = nextFact(); go('fact'); }
+function drawNames() {
+  pairs = shuffle(PAIR_NAMES.slice()).slice(0, nPairs).map(n => ({ name: n, score: 0 }));
+}
+function nextWord() {
+  if (!wordDeck.length) {
+    let pool = [];
+    CATS.forEach((c, ci) => { if (catOn[ci]) c.words.forEach(w => { if (!usedWords.has(w)) pool.push({ w, cat: ci }); }); });
+    if (!pool.length) { usedWords.clear(); CATS.forEach((c, ci) => { if (catOn[ci]) c.words.forEach(w => pool.push({ w, cat: ci })); }); }
+    wordDeck = shuffle(pool);
+  }
+  const it = wordDeck.pop(); usedWords.add(it.w); return it;
+}
+function buildQueue() {
+  queue = []; let last = -1;
+  for (let r = 0; r < rounds; r++) {
+    const o = shuffle(pairs.map((p, i) => i));
+    if (o[0] === last && o.length > 1) o.push(o.shift());
+    queue.push(...o); last = o[o.length - 1];
+  }
+  totalTurns = queue.length; turnNo = 0;
+}
+function startGame() {
+  pairs.forEach(p => p.score = 0); wordDeck = [];
+  buildQueue(); curIdx = queue[0]; startFact('intro', 4);
+}
+function beginTurn() {
+  word = nextWord(); turnPts = 0; tStart = performance.now(); lastSec = 99; go('play'); play('start');
+}
+function endTurn() {
+  play('buzz'); go('end'); lockUntil = performance.now() + 1100;
+  if (turnPts > 0) burst(VW * 0.36, 400, 70);
+}
+function afterTurn() {
+  turnNo++;
+  if (turnNo >= totalTurns) { go('final'); play('fanfare'); burst(VW * 0.36, 300, 160); return; }
+  curIdx = queue[turnNo];
+  if (rnd(100) < 65) startFact('intro', 3.5); else go('intro');
+}
+
+// ---------- Confeti ----------
+let conf = [];
+function burst(x, y, n) {
+  for (let i = 0; i < n; i++) conf.push({ x, y, vx: (rnd(1400) - 700), vy: -(rnd(900) + 200), r: rnd(628) / 100, vr: rnd(20) - 10,
+    c: [C.gold, C.pink, C.mint, C.lav, C.gold2, C.peach][rnd(6)], s: 10 + rnd(14), life: 3 + rnd(200) / 100 });
+}
+function updateConf(dt) {
+  conf.forEach(p => { p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.995; p.r += p.vr * dt; p.life -= dt; });
+  conf = conf.filter(p => p.life > 0 && p.y < VH + 40);
+}
+function drawConf() {
+  conf.forEach(p => { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+}
+
+// ---------- Helpers de dibujo ----------
+function setFont(sz, fam, w) { ctx.font = (w || '700') + ' ' + Math.round(sz) + 'px ' + fam; }
+const ACC = /[ÁÉÍÓÚ]/;
+function T(str, x, y, sz, fam, col, al, w) {
+  if (fam === PIX && ACC.test(str)) { fam = SOFT; sz *= 1.15; }
+  setFont(sz, fam, fam === PIX ? '400' : w); ctx.fillStyle = col; ctx.textAlign = al || 'center'; ctx.textBaseline = 'middle'; ctx.fillText(str, x, y);
+}
+function fitSize(str, maxW, sz, fam, min) {
+  if (fam === PIX && ACC.test(str)) { fam = SOFT; sz *= 1.15; }
+  setFont(sz, fam, fam === PIX ? '400' : '700');
+  while (sz > (min || 14) && ctx.measureText(str).width > maxW) { sz -= 2; setFont(sz, fam, fam === PIX ? '400' : '700'); }
+  return sz;
+}
+function lines(str, maxW) {
+  const out = []; let l = '';
+  for (const w of str.split(' ')) { const tt = l ? l + ' ' + w : w; if (ctx.measureText(tt).width > maxW && l) { out.push(l); l = w; } else l = tt; }
+  if (l) out.push(l); return out;
+}
+function para(str, cx, cy, maxW, szMax, szMin, maxLines, fam, col) {
+  let sz = szMax, ls;
+  for (;;) { setFont(sz, fam); ls = lines(str, maxW); if (ls.length <= maxLines || sz <= szMin) break; sz -= 4; }
+  const lh = sz * 1.18, y0 = cy - (ls.length - 1) * lh / 2;
+  ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ls.forEach((l, i) => ctx.fillText(l, cx, y0 + i * lh));
+}
+function pxpath(x, y, w, h, n) {
+  ctx.beginPath(); ctx.moveTo(x + n, y); ctx.lineTo(x + w - n, y); ctx.lineTo(x + w - n, y + n); ctx.lineTo(x + w, y + n);
+  ctx.lineTo(x + w, y + h - n); ctx.lineTo(x + w - n, y + h - n); ctx.lineTo(x + w - n, y + h); ctx.lineTo(x + n, y + h);
+  ctx.lineTo(x + n, y + h - n); ctx.lineTo(x, y + h - n); ctx.lineTo(x, y + n); ctx.lineTo(x + n, y + n); ctx.closePath();
+}
+function box(x, y, w, h, fill, o) {
+  o = o || {}; const n = o.n || 10, sh = o.sh === undefined ? 10 : o.sh;
+  if (sh) { ctx.fillStyle = 'rgba(90,70,50,0.28)'; pxpath(x + sh, y + sh, w, h, n); ctx.fill(); }
+  ctx.fillStyle = fill; pxpath(x, y, w, h, n); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(x + n, y + 6, w - 2 * n, 8);
+  ctx.lineWidth = o.bw || 8; ctx.strokeStyle = o.border || C.ink; ctx.lineJoin = 'miter'; pxpath(x, y, w, h, n); ctx.stroke();
+}
+function btn(id, x, y, w, h, label, o) {
+  o = o || {}; btns.push({ id, x, y, w, h });
+  const sel = selId === id, p = sel ? 6 + Math.sin(t * 8) * 4 : 0;
+  box(x - p, y - p, w + 2 * p, h + 2 * p, o.fill || C.gold2, { border: sel ? C.gold : C.ink, bw: sel ? 12 : 8, sh: sel ? 14 : 10 });
+  if (sel) { ctx.lineWidth = 4; ctx.strokeStyle = C.ink; pxpath(x - p - 10, y - p - 10, w + 2 * p + 20, h + 2 * p + 20, 12); ctx.stroke(); }
+  const cy = y + h / 2 - (o.sub ? h * 0.09 : 0);
+  const sz = fitSize(label, w - 50, o.size || 64, o.fam || SOFT);
+  T(label, x + w / 2, cy, sz, o.fam || SOFT, o.color || C.ink);
+  if (o.sub) T(o.sub, x + w / 2, y + h * 0.78, Math.min(o.subSize || 34, h * 0.2), SOFT, C.ink);
+}
+function catColor(i) { return PASTELS[i % PASTELS.length]; }
+
+// ---------- Fondo retro ----------
+const scan = document.createElement('canvas'); scan.width = 4; scan.height = 4;
+{ const s = scan.getContext('2d'); s.fillStyle = 'rgba(90,70,50,0.07)'; s.fillRect(0, 3, 4, 1); }
+const stars = []; for (let i = 0; i < 46; i++) stars.push({ x: rnd(VW), y: rnd(VH), ph: rnd(628) / 100, s: 6 + rnd(3) * 4 });
+function drawBg() {
+  ctx.fillStyle = C.bg; ctx.fillRect(-OX / SC, -OY / SC, cv.width / SC, cv.height / SC);
+  const sz = 80, off = (t * 18) % (sz * 2);
+  ctx.fillStyle = C.bg2;
+  for (let y = -sz; y < VH + sz; y += sz) for (let x = -sz * 2; x < VW + sz; x += sz * 2) {
+    const row = Math.round(y / sz) & 1; ctx.fillRect(x + off + (row ? sz : 0), y, sz, sz);
+  }
+  stars.forEach(s => {
+    const a = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.5 + s.ph)); ctx.fillStyle = 'rgba(201,162,75,' + a.toFixed(2) + ')';
+    ctx.fillRect(s.x - s.s / 2, s.y - 2, s.s, 4); ctx.fillRect(s.x - 2, s.y - s.s / 2, 4, s.s);
+  });
+}
+function drawScan() {
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = ctx.createPattern(scan, 'repeat'); ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore();
+}
+
+// ---------- Tabla de clasificación ----------
+function board() {
+  if (!pairs.length) return;
+  const x = 1440, y = 24, w = 456, h = 1032;
+  box(x, y, w, h, C.white, { sh: 8 });
+  T('TABLA', x + w / 2, y + 52, 28, PIX, C.gold);
+  const arr = pairs.map((p, i) => ({ p, i })).sort((a, b) => b.p.score - a.p.score || a.i - b.i);
+  const n = arr.length, top = y + 100, rh = Math.min(66, (h - 120) / n);
+  let rank = 0, prev = -1;
+  arr.forEach((o, k) => {
+    if (o.p.score !== prev) { rank = k + 1; prev = o.p.score; }
+    const ry = top + k * rh;
+    if (o.i === curIdx && scr !== 'final') { ctx.fillStyle = C.gold2; ctx.fillRect(x + 12, ry + 2, w - 24, rh - 4); }
+    const fs = rh * 0.5;
+    T(String(rank), x + 40, ry + rh / 2, fs, SOFT, rank === 1 ? C.gold : C.ink);
+    const nm = o.p.name, sz = fitSize(nm, w - 190, fs, SOFT, 12);
+    T(nm, x + 76, ry + rh / 2, sz, SOFT, C.ink, 'left');
+    T(String(o.p.score), x + w - 34, ry + rh / 2, fs * 1.1, SOFT, C.ink, 'right');
+  });
+}
+
+// ---------- Pantallas ----------
+function sTitle() {
+  drawHeads(10, 1);
+  const bob = Math.sin(t * 3) * 8;
+  box(260, 150 + bob, 1400, 430, C.white, { sh: 16, bw: 10 });
+  const l1 = 'CHARADAS', l2 = 'CUMPLEAÑERAS';
+  setFont(110, PIX, '400'); let wd = ctx.measureText(l1).width; let sx = VW / 2 - wd / 2;
+  [...l1].forEach((ch, i) => {
+    setFont(110, PIX, '400'); const cw = ctx.measureText(ch).width, yy = 270 + bob + Math.sin(t * 4 + i * 0.6) * 12;
+    T(ch, sx + cw / 2 + 6, yy + 6, 110, PIX, C.ink); T(ch, sx + cw / 2, yy, 110, PIX, C.gold); sx += cw;
+  });
+  const sz2 = fitSize(l2, 1280, 92, PIX); setFont(sz2, PIX, '400'); wd = ctx.measureText(l2).width; sx = VW / 2 - wd / 2;
+  [...l2].forEach((ch, i) => {
+    setFont(sz2, PIX, '400'); const cw = ctx.measureText(ch).width, yy = 420 + bob + Math.sin(t * 4 + 2 + i * 0.5) * 10;
+    T(ch, sx + cw / 2 + 5, yy + 5, sz2, PIX, C.ink); T(ch, sx + cw / 2, yy, sz2, PIX, '#E8A9B6'); sx += cw;
+  });
+  const bx = 460, bwid = 1000;
+  box(bx, 490 + bob, bwid, 70, C.pink, { sh: 6, bw: 6 });
+  T('¡FELIZ CUMPLEAÑOS!', VW / 2, 526 + bob, fitSize('¡FELIZ CUMPLEAÑOS!', bwid - 40, 36, PIX), PIX, C.ink);
+  const blink = Math.floor(t * 2) % 2 === 0;
+  btn('play', 610, 700, 700, 190, 'A JUGAR', { fill: C.green, size: 100 });
+  if (blink) T('- HAZ CLIC PARA EMPEZAR -', VW / 2, 960, 24, PIX, C.ink);
+}
+function sFact() {
+  drawHeads(8, 0.9);
+  box(120, 120, 1680, 120, C.white, { sh: 8 });
+  T('CARGANDO...', VW / 2, 180, 52, PIX, C.gold);
+  const segs = 24, prog = Math.min(1, scrT / factDur), fill = Math.floor(prog * segs);
+  box(160, 290, 1600, 90, C.white, { sh: 8 });
+  for (let i = 0; i < segs; i++) {
+    ctx.fillStyle = i < fill ? [C.gold, C.pink, C.mint][i % 3] : C.bg2; ctx.fillRect(180 + i * 65, 310, 56, 50);
+  }
+  box(160, 450, 1600, 460, C.white, { sh: 14 });
+  T('DATO CURIOSO', VW / 2, 510, 30, PIX, '#E8A9B6');
+  para(factText, VW / 2, 700, 1480, 78, 44, 4, SOFT, C.ink);
+  if (scrT > 1.5) T('clic para saltar', VW / 2, 990, 22, PIX, C.ink);
+  if (scrT >= factDur) { const n = factNext; if (n === 'intro') rollInit(); go(n); }
+}
+function stepper(label, yTop, val, idm, idp, unit) {
+  setFont(44, SOFT); const lw = ctx.measureText(label).width + 60;
+  box(VW / 2 - lw / 2, yTop - 32, lw, 64, C.white, { sh: 4, bw: 5, n: 6 });
+  T(label, VW / 2, yTop, 44, SOFT, C.ink);
+  btn(idm, 480, yTop + 40, 190, 190, '-', { fill: C.pink, size: 130 });
+  box(730, yTop + 40, 460, 190, C.white, { sh: 8 });
+  T(String(val), VW / 2, yTop + 130, 120, PIX, C.gold);
+  btn(idp, 1250, yTop + 40, 190, 190, '+', { fill: C.mint, size: 130 });
+  if (unit) { setFont(32, SOFT); const uw = ctx.measureText(unit).width + 50; box(VW / 2 - uw / 2, yTop + 244, uw, 50, C.white, { sh: 0, bw: 4, n: 5 }); T(unit, VW / 2, yTop + 270, 32, SOFT, C.ink); }
+}
+function sPairs() {
+  drawHeads(9, 0.85);
+  box(250, 40, 1420, 110, C.white, { sh: 8 });
+  T('CONFIGURA EL JUEGO', VW / 2, 98, fitSize('CONFIGURA EL JUEGO', 1340, 44, PIX), PIX, C.gold);
+  stepper('¿Cuántas parejas juegan?', 190, nPairs, 'pm', 'pp', '= ' + nPairs * 2 + ' jugadores');
+  stepper('Turnos de 60 s por pareja', 520, rounds, 'rm', 'rp', 'Total: ' + nPairs * rounds + ' turnos');
+  btn('confirm', 460, 880, 1000, 150, 'CONFIRMAR', { fill: C.green, size: 80 });
+}
+function sNames() {
+  drawHeads(8, 0.8);
+  box(250, 24, 1420, 110, C.white, { sh: 8 });
+  T('¡NOMBRES DE LAS PAREJAS!', VW / 2, 80, fitSize('¡NOMBRES DE LAS PAREJAS!', 1340, 44, PIX), PIX, C.gold);
+  const cols = 4, rows = Math.ceil(pairs.length / cols), gap = 24, cw = (1920 - 120 - gap * 3) / cols;
+  const rh = Math.min(120, (610 - (rows - 1) * 20) / rows);
+  pairs.forEach((p, i) => {
+    const appear = Math.min(1, Math.max(0, scrT * 7 - i)); if (appear <= 0) return;
+    const r = Math.floor(i / cols), c = i % cols, x = 60 + c * (cw + gap), y = 165 + r * (rh + 20);
+    const pop = 1 + (1 - appear) * 0.25;
+    ctx.save(); ctx.translate(x + cw / 2, y + rh / 2); ctx.scale(pop, pop); ctx.translate(-cw / 2, -rh / 2);
+    ctx.globalAlpha = appear; box(0, 0, cw, rh, catColor(i), { sh: 6, bw: 6 });
+    T(p.name, cw / 2, rh / 2, fitSize(p.name, cw - 40, rh * 0.5, SOFT, 16), SOFT, C.ink); ctx.restore();
+  });
+  box(110, 800, 1700, 130, C.white, { sh: 8, bw: 6 });
+  para(tickFact, VW / 2, 865, 1600, 44, 28, 2, SOFT, C.ink);
+  btn('reroll', 60, 955, 520, 100, 'OTRO SORTEO', { fill: C.lav, size: 48 });
+  btn('done', 620, 955, 1240, 100, '¡LISTO! TODOS TIENEN NOMBRE', { fill: C.green, size: 52 });
+  if (scrT - tickBase >= 5) { tickFact = nextFact(); tickBase = scrT; }
+}
+function sCats() {
+  drawHeads(8, 0.7);
+  box(250, 24, 1420, 110, C.white, { sh: 8 });
+  T('ELIGE LAS CATEGORÍAS', VW / 2, 80, fitSize('ELIGE LAS CATEGORÍAS', 1340, 44, PIX), PIX, C.gold);
+  const cw = 560, ch = 190, gap = 30;
+  CATS.forEach((c, i) => {
+    const r = Math.floor(i / 3), col = i % 3, x = 90 + col * (cw + gap), y = 165 + r * (ch + gap), on = catOn[i];
+    btns.push({ id: 'cat' + i, x, y, w: cw, h: ch });
+    const sel = selId === 'cat' + i, p = sel ? 5 + Math.sin(t * 8) * 3 : 0;
+    box(x - p, y - p, cw + 2 * p, ch + 2 * p, on ? catColor(i) : '#E9DFCB', { sh: 8, bw: sel ? 12 : 8, border: sel ? C.gold : C.ink });
+    ctx.fillStyle = C.white; ctx.fillRect(x + 28, y + ch / 2 - 30, 60, 60); ctx.lineWidth = 6; ctx.strokeStyle = C.ink; ctx.strokeRect(x + 28, y + ch / 2 - 30, 60, 60);
+    if (on) { ctx.lineWidth = 12; ctx.strokeStyle = '#4E9E6B'; ctx.beginPath(); ctx.moveTo(x + 38, y + ch / 2); ctx.lineTo(x + 54, y + ch / 2 + 18); ctx.lineTo(x + 80, y + ch / 2 - 18); ctx.stroke(); }
+    const nm = c.name; ctx.globalAlpha = on ? 1 : 0.55;
+    para(nm, x + 100 + (cw - 120) / 2, y + ch / 2 - 18, cw - 130, 44, 26, 2, SOFT, C.ink);
+    T(c.words.length + ' palabras', x + 100 + (cw - 120) / 2, y + ch - 36, 26, SOFT, C.ink); ctx.globalAlpha = 1;
+  });
+  const sel = catOn.filter(Boolean).length;
+  btn('start', 460, 905, 1000, 130, sel ? '¡EMPEZAR!' : 'ELIGE UNA CATEGORÍA', { fill: sel ? C.green : '#E9DFCB', size: 76 });
+}
+function rollInit() { scrT = 0; lastRollIdx = -1; }
+function sIntro() {
+  drawHeads(5, 0.4);
+  T('TURNO ' + (turnNo + 1) + ' DE ' + totalTurns, 700, 90, 36, PIX, C.ink);
+  T('LE TOCA A...', 700, 190, 48, SOFT, C.ink);
+  const rolling = scrT < 1.5;
+  let name = pairs[curIdx].name;
+  if (rolling) { const k = Math.floor(scrT * 14); name = pairs[k % pairs.length].name; if (k !== lastRollIdx) { lastRollIdx = k; play('tick'); } }
+  else if (!revealSnd) { revealSnd = true; play('win'); }
+  const pulse = rolling ? 1 : 1 + Math.sin(scrT * 6) * 0.025;
+  ctx.save(); ctx.translate(700, 400); ctx.scale(pulse, pulse);
+  box(-640, -130, 1280, 260, rolling ? C.lav : C.gold2, { sh: 14, bw: 10 });
+  T(name, 0, 0, fitSize(name, 1180, 130, SOFT, 40), SOFT, C.ink); ctx.restore();
+  box(60, 600, 1280, 190, C.white, { sh: 8, bw: 6 });
+  para('Uno se sienta de ESPALDAS al tele. El otro se queda de frente y ACTÚA la palabra, sin hablar.', 700, 665, 1180, 42, 30, 2, SOFT, C.ink);
+  T('Tienen ' + TURN_SECONDS + ' segundos: ¡entre más adivinen, mejor!', 700, 750, 34, SOFT, C.ink);
+  if (!rolling) btn('ready', 190, 840, 1020, 190, '¡LISTOS! EMPEZAR', { fill: C.green, size: 80 });
+  board();
+}
+function sPlay() {
+  drawHeads(3, 0.12);
+  const left = Math.max(0, TURN_SECONDS - (performance.now() - tStart) / 1000), secs = Math.ceil(left);
+  if (secs !== lastSec) { lastSec = secs; if (secs <= 10 && secs > 0) play('tick'); }
+  if (left <= 0) { endTurn(); return; }
+  const low = left <= 10, pulse = low ? 1 + Math.sin(t * 12) * 0.06 : 1;
+  const fl = Math.max(0, 1 - (t - flash.t) / 0.35);
+  T(pairs[curIdx].name, 40, 56, fitSize(pairs[curIdx].name, 760, 46, SOFT, 24), SOFT, C.ink, 'left');
+  T('Aciertos: ' + turnPts, 40, 120, 38, SOFT, C.gold, 'left');
+  ctx.save(); ctx.translate(1150, 100); ctx.scale(pulse, pulse);
+  T(String(secs), 0, 0, 160, SOFT, low ? '#D9695F' : C.ink); ctx.restore();
+  box(40, 190, 1340, 34, C.white, { sh: 4, bw: 5, n: 5 });
+  ctx.fillStyle = low ? C.red : C.green; ctx.fillRect(48, 198, 1324 * (left / TURN_SECONDS), 18);
+  // palabra
+  const wc = catColor(word.cat);
+  box(40, 250, 1340, 310, flash.col && fl > 0 ? flash.col : C.white, { sh: 10, bw: 8 });
+  setFont(28, SOFT); const chipW = ctx.measureText(CATS[word.cat].name).width + 50;
+  box(60, 232, chipW, 50, wc, { sh: 0, bw: 5, n: 5 });
+  T(CATS[word.cat].name, 85, 258, 28, SOFT, C.ink, 'left');
+  para(word.w, 710, 420, 1240, 112, 56, 3, SOFT, C.ink);
+  btn('ok', 40, 600, 660, 440, 'VÁLIDA - PASO', { fill: C.green, size: 76, sub: '+1 punto · siguiente palabra', subSize: 36 });
+  btn('skip', 720, 600, 660, 440, 'SALTAR', { fill: C.red, size: 90, sub: 'sin punto · otra palabra', subSize: 36 });
+  board();
+}
+function sEnd() {
+  drawHeads(4, 0.35);
+  sheiAt(0, 240, 720, 360, Math.sin(t * 2) * 0.12, 1, ((t * 0.3) % 1.4) / 1.4);
+  sheiAt(1, 1140, 720, 360, -Math.sin(t * 2) * 0.12, 1, ((t * 0.3 + 0.5) % 1.4) / 1.4);
+  T('¡SE ACABÓ EL TIEMPO!', 700, 90, fitSize('¡SE ACABÓ EL TIEMPO!', 1300, 48, PIX), PIX, C.gold);
+  T(pairs[curIdx].name, 700, 200, fitSize(pairs[curIdx].name, 1300, 90, SOFT, 36), SOFT, C.ink);
+  const pop = 1 + Math.sin(Math.min(scrT, 1) * 9) * 0.12 * Math.max(0, 1 - scrT);
+  ctx.save(); ctx.translate(700, 450); ctx.scale(pop, pop);
+  box(-300, -170, 600, 340, C.white, { sh: 12 });
+  T('+' + turnPts, 0, -20, 190, SOFT, turnPts ? '#4E9E6B' : C.ink);
+  T(turnPts === 1 ? 'acierto' : 'aciertos', 0, 110, 44, SOFT, C.ink); ctx.restore();
+  T('Total: ' + pairs[curIdx].score + ' puntos', 700, 700, 52, SOFT, C.ink);
+  btn('next', 190, 870, 1020, 160, turnNo + 1 >= totalTurns ? 'VER RESULTADOS' : 'SIGUIENTE PAREJA', { fill: C.green, size: 70 });
+  board();
+}
+function sFinal() {
+  drawHeads(6, 0.5);
+  const max = Math.max(...pairs.map(p => p.score)), win = pairs.filter(p => p.score === max);
+  const nm = win.map(p => p.name).join(' & ');
+  T(win.length > 1 ? '¡EMPATE!' : '¡PAREJA GANADORA!', 700, 110, 52, PIX, C.gold);
+  const pulse = 1 + Math.sin(t * 5) * 0.03;
+  ctx.save(); ctx.translate(700, 380); ctx.scale(pulse, pulse);
+  box(-640, -150, 1280, 300, C.gold2, { sh: 16, bw: 10 });
+  para(nm, 0, -10, 1180, 120, 40, 2, SOFT, C.ink); ctx.restore();
+  T(max + ' puntos', 700, 600, 70, SOFT, C.ink);
+  sheiAt(0, 240, 800, 330, Math.sin(t * 2) * 0.12, 1, ((t * 0.3) % 1.4) / 1.4);
+  sheiAt(1, 1160, 800, 330, -Math.sin(t * 2) * 0.12, 1, ((t * 0.3 + 0.5) % 1.4) / 1.4);
+  btn('again', 360, 880, 680, 150, 'VOLVER A JUGAR', { fill: C.green, size: 64 });
+  board();
+}
+
+// ---------- Acciones ----------
+function act(id) {
+  if (performance.now() < lockUntil) return;
+  if (scr === 'fact') { if (scrT > 1.5) scrT = factDur; return; }
+  switch (id) {
+    case 'play': play('start'); startFact('pairs', 4.5); break;
+    case 'pm': nPairs = Math.max(2, nPairs - 1); play('tick'); break;
+    case 'pp': nPairs = Math.min(PAIR_NAMES.length, nPairs + 1); play('tick'); break;
+    case 'rm': rounds = Math.max(1, rounds - 1); play('tick'); break;
+    case 'rp': rounds = Math.min(5, rounds + 1); play('tick'); break;
+    case 'confirm': drawNames(); tickFact = nextFact(); tickBase = 0; play('pop'); go('names'); break;
+    case 'reroll': drawNames(); scrT = 0; tickFact = nextFact(); tickBase = 0; play('pop'); break;
+    case 'done': play('start'); go('cats'); break;
+    case 'start': if (catOn.some(Boolean)) { play('start'); startGame(); } else play('buzz'); break;
+    case 'ready': beginTurn(); break;
+    case 'ok':
+      turnPts++; pairs[curIdx].score++; play('ding'); flash = { col: C.mint, t }; word = nextWord(); break;
+    case 'skip': play('skip'); flash = { col: C.red, t }; word = nextWord(); break;
+    case 'next': play('pop'); afterTurn(); break;
+    case 'again': play('start'); conf = []; go('pairs'); break;
+    default:
+      if (id && id.indexOf('cat') === 0) { const i = +id.slice(3); if (!(catOn[i] && catOn.filter(Boolean).length === 1)) catOn[i] = !catOn[i]; play('tick'); }
+  }
+}
+
+// ---------- Entrada ----------
+function keyOf(e) {
+  const c = e.keyCode, k = e.key;
+  if (k === 'ArrowLeft' || c === 37 || c === 21) return 'L';
+  if (k === 'ArrowUp' || c === 38 || c === 19) return 'U';
+  if (k === 'ArrowRight' || c === 39 || c === 22) return 'R';
+  if (k === 'ArrowDown' || c === 40 || c === 20) return 'D';
+  if (k === 'Enter' || k === ' ' || c === 13 || c === 23 || c === 66 || c === 32) return 'OK';
+  return null;
+}
+function navigate(dir) {
+  if (!btns.length) return;
+  const cur = btns.find(b => b.id === selId);
+  if (!cur) { selId = btns[0].id; return; }
+  const cx = cur.x + cur.w / 2, cy = cur.y + cur.h / 2; let best = null, bs = 1e9;
+  btns.forEach(b => {
+    if (b === cur) return;
+    const dx = b.x + b.w / 2 - cx, dy = b.y + b.h / 2 - cy;
+    const along = dir === 'L' ? -dx : dir === 'R' ? dx : dir === 'U' ? -dy : dy;
+    if (along <= 5) return;
+    const perp = (dir === 'L' || dir === 'R') ? Math.abs(dy) : Math.abs(dx);
+    const s = along + perp * 2.5; if (s < bs) { bs = s; best = b; }
+  });
+  if (best) { selId = best.id; play('tick'); }
+}
+addEventListener('keydown', e => {
+  const k = keyOf(e); if (!k) return; e.preventDefault();
+  if (k === 'OK') { if (!e.repeat) { lastKeyOk = performance.now(); if (scr === 'fact') act(null); else if (selId) act(selId); } return; }
+  if (!e.repeat || true) navigate(k);
+});
+function vpt(e) {
+  const r = cv.getBoundingClientRect();
+  const px = (e.clientX - r.left) * (cv.width / r.width), py = (e.clientY - r.top) * (cv.height / r.height);
+  return { x: (px - OX) / SC, y: (py - OY) / SC, t: performance.now() };
+}
+function hit(p) { const s = 8; return btns.find(b => p.x >= b.x - s && p.x <= b.x + b.w + s && p.y >= b.y - s && p.y <= b.y + b.h + s); }
+let lastPt = null;
+['mousemove', 'pointermove', 'mousedown', 'pointerdown', 'mouseover'].forEach(n => cv.addEventListener(n, e => {
+  const p = vpt(e); lastPt = p; const b = hit(p); if (b) selId = b.id;
+}));
+cv.addEventListener('click', e => {
+  if (performance.now() - lastKeyOk < 400) return;
+  if (scr === 'fact') { act(null); return; }
+  const p = (lastPt && performance.now() - lastPt.t < 1500) ? lastPt : vpt(e);
+  let b = hit(p);
+  if (!b && btns.length === 1) b = btns[0];          // pantallas con un solo botón: clic en cualquier parte
+  if (b) { selId = b.id; act(b.id); }
+});
+
+// ---------- Bucle ----------
+let prev = performance.now();
+function frame() {
+  const nw = performance.now(), dt = Math.min(0.05, (nw - prev) / 1000); prev = nw; t += dt; scrT += dt; now = nw / 1000;
+  updateHeads(dt); updateConf(dt);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(SC, 0, 0, SC, OX, OY);
+  drawBg();
+  btns = [];
+  ({ title: sTitle, fact: sFact, pairs: sPairs, names: sNames, cats: sCats, intro: sIntro, play: sPlay, end: sEnd, final: sFinal })[scr]();
+  drawConf();
+  if (!btns.find(b => b.id === selId) && btns.length) selId = btns.find(b => b.id === DEF[scr]) ? DEF[scr] : btns[0].id;
+  drawScan();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
