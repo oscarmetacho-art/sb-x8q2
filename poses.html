@@ -239,7 +239,7 @@ let nRounds = 3, flashSecs = 0.5, moldSecs = 60, nPuppets = 1;
 let teams = [], startTeam = 0, curTeam = 0, turnNo = 0, totalTurns = 6, poseDeck = [], curPose = null, lastPose = null;
 let flashT0 = 0, moldStart = 0, verdictGood = false;
 let factNext = null, factDur = 4.5, factText = '';
-const DEF = { title: 'play', setup: 'confirm', intro: 'show', mold: 'ready', reveal: 'good', verdict: 'next', final: 'again' };
+const DEF = { teams: 'okteams', title: 'play', setup: 'confirm', intro: 'show', mold: 'ready', reveal: 'good', verdict: 'next', final: 'again' };
 const TEAM_COL = [C.pink, C.mint];
 function rollInit() {}
 function go(name) { scr = name; scrT = 0; selId = DEF[name] || null; lockUntil = performance.now() + 350; flashT0 = 0; }
@@ -260,9 +260,13 @@ function nextPose() {
   }
   return lastPose = poseDeck.pop();
 }
+let nameDeck = [], pendNames = ['', ''];
+function drawTeamNames() {
+  if (nameDeck.length < 2) nameDeck = shuffle(TEAM_NAMES.filter(n => !pendNames.includes(n)));
+  pendNames = [nameDeck.pop(), nameDeck.pop()];
+}
 function startGame() {
-  const nm = shuffle(TEAM_NAMES.slice());
-  teams = [{ name: nm[0], score: 0 }, { name: nm[1], score: 0 }];
+  teams = [{ name: pendNames[0], score: 0 }, { name: pendNames[1], score: 0 }];
   startTeam = rnd(2); turnNo = 0; curTeam = startTeam; totalTurns = nRounds * 2; poseDeck = [];
   startFact('intro', 4);
 }
@@ -412,6 +416,21 @@ function sSetup() {
   stepper3('Segundos para moldear', 735, moldSecs, 'tm', 'tp');
   btn('confirm', 460, 925, 1000, 120, 'CONFIRMAR', { fill: C.green, size: 70 });
 }
+function sTeams() {
+  box(250, 30, 1420, 110, C.white, { sh: 8 });
+  T('NOMBRES DE LOS EQUIPOS', VW / 2, 88, fitSize('NOMBRES DE LOS EQUIPOS', 1340, 44, PIX), PIX, C.gold);
+  pendNames.forEach((nm, i) => {
+    const appear = Math.min(1, scrT * 4 - i * 0.4); if (appear <= 0) return;
+    const x = 110 + i * 870, pop = 1 + (1 - appear) * 0.2;
+    ctx.save(); ctx.translate(x + 420, 400); ctx.scale(pop, pop); ctx.globalAlpha = appear;
+    box(-420, -190, 840, 380, TEAM_COL[i], { sh: 12, bw: 10 });
+    T('EQUIPO ' + (i + 1), 0, -130, 30, PIX, C.ink);
+    para(nm, 0, 20, 760, 110, 40, 2, SOFT, C.ink); ctx.restore();
+  });
+  T('¿Les gustan? Si no, ¡otros dos al azar!', VW / 2, 700, 40, SOFT, C.ink);
+  btn('reroll', 110, 780, 760, 200, 'OTROS NOMBRES', { fill: C.lav, size: 70 });
+  btn('okteams', 980, 780, 830, 200, '¡ESTÁ BIEN! A JUGAR', { fill: C.green, size: 66 });
+}
 function sIntro() {
   T('TURNO ' + (turnNo + 1) + ' DE ' + totalTurns, 700, 90, 36, PIX, C.ink);
   T('LE TOCA AL EQUIPO', 700, 190, 48, SOFT, C.ink);
@@ -520,7 +539,9 @@ function act(id) {
     case 'fp': flashSecs = Math.min(3, flashSecs + 0.5); play('tick'); break;
     case 'tm': moldSecs = Math.max(30, moldSecs - 15); play('tick'); break;
     case 'tp': moldSecs = Math.min(120, moldSecs + 15); play('tick'); break;
-    case 'confirm': nRounds = Math.min(nRounds, maxRounds()); play('pop'); startGame(); break;
+    case 'confirm': nRounds = Math.min(nRounds, maxRounds()); play('pop'); drawTeamNames(); go('teams'); break;
+    case 'reroll': play('pop'); drawTeamNames(); scrT = 0; break;
+    case 'okteams': play('start'); startGame(); break;
     case 'show': curPose = nextPose(); sFlash.last = 0; go('flash'); break;
     case 'ready': play('start'); go('reveal'); break;
     case 'good': teams[curTeam].score++; verdictGood = true; play('win'); burst(VW * 0.36, 400, 90); go('verdict'); break;
@@ -590,11 +611,11 @@ function frame() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(SC, 0, 0, SC, OX, OY);
   drawBg();
-  const HC = { title: [12, 1], fact: [10, 0.9], flash: [0, 0], mold: [4, 0.55], intro: [7, 0.9], setup: [8, 0.9], reveal: [3, 0.8], verdict: [7, 0.9], final: [8, 0.9] }[scr] || [6, 0.9];
+  const HC = { title: [12, 1], fact: [10, 0.9], flash: [0, 0], mold: [4, 0.55], intro: [7, 0.9], setup: [8, 0.9], teams: [8, 0.9], reveal: [3, 0.8], verdict: [7, 0.9], final: [8, 0.9] }[scr] || [6, 0.9];
   drawHeads(HC[0], HC[1]);
   if (noMemes) mfloat.length = 0; else drawMemes();
   btns = [];
-  ({ title: sTitle, fact: sFact, setup: sSetup, intro: sIntro, flash: sFlash, mold: sMold, reveal: sReveal, verdict: sVerdict, final: sFinal })[scr]();
+  ({ title: sTitle, fact: sFact, setup: sSetup, teams: sTeams, intro: sIntro, flash: sFlash, mold: sMold, reveal: sReveal, verdict: sVerdict, final: sFinal })[scr]();
   drawConf();
   if (scr !== 'flash') btn('home', 20, 8, 210, 58, 'INICIO', { fill: C.white, size: 30 });
   if (scr !== 'fact' && !btns.find(b => b.id === selId) && btns.length) selId = btns.find(b => b.id === DEF[scr]) ? DEF[scr] : btns[0].id;
