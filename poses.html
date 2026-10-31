@@ -183,8 +183,10 @@ const POSES = ['La inclinación imposible', 'Celebración SIUUU', 'El Chavo del 
   'Kamehameha de Goku', 'Titanic: ¡soy el rey del mundo!', 'Superman volando', 'El rayo de Bolt', 'Thanos: el chasquido', 'Elsa de Frozen',
   'Pelea estilo Bruce Lee', 'Minnie Mouse', 'La pose de Shakira', 'Cristo Redentor', 'Neo esquivando balas', 'Mario saltando', 'Pose de poder de Beyoncé',
   'Karate Kid: la grulla', 'Hulk furioso', 'Ronaldinho: ¡hang loose!', 'Bad Bunny agachado', 'Mr. Bean sentado'];
+// Cuántos títeres necesita cada pose (índice 0-based en POSES). Las que no están aquí son de 1 persona.
+const POSE_N = { 10: 2 };
 const poseImgs = POSES.map((nm, i) => {
-  const e = { name: nm, im: new Image(), ok: false };
+  const e = { name: nm, im: new Image(), ok: false, n: POSE_N[i] || 1 };
   e.im.onload = () => { e.ok = true; };
   e.im.src = 'poses/p' + (i < 9 ? '0' : '') + (i + 1) + '.jpg';
   return e;
@@ -200,7 +202,7 @@ function fitImg(im, x, y, w, h) {
 // ---------- Estado ----------
 let t = 0, now = 0, lastKeyOk = -1e9, lockUntil = 0;
 let scr = 'title', scrT = 0, selId = null, btns = [];
-let nRounds = 3, flashSecs = 0.5, moldSecs = 60;
+let nRounds = 3, flashSecs = 0.5, moldSecs = 60, nPuppets = 1;
 let teams = [], startTeam = 0, curTeam = 0, turnNo = 0, totalTurns = 6, poseDeck = [], curPose = null, lastPose = null;
 let flashT0 = 0, moldStart = 0, verdictGood = false;
 let factNext = null, factDur = 4.5, factText = '';
@@ -209,7 +211,14 @@ const TEAM_COL = [C.pink, C.mint];
 function rollInit() {}
 function go(name) { scr = name; scrT = 0; selId = DEF[name] || null; lockUntil = performance.now() + 350; flashT0 = 0; }
 function startFact(next, dur) { factNext = next; factDur = dur || 4.5; factText = nextFact(); go('fact'); }
-const okPoses = () => poseImgs.filter(p => p.ok);
+const okPoses = () => poseImgs.filter(p => p.ok && p.n === nPuppets);
+const countOf = n => poseImgs.filter(p => p.ok && p.n === n).length;
+const puppetOptions = () => [1, 2, 3, 4].filter(n => countOf(n) >= 2);
+function stepPuppets(d) {
+  const o = puppetOptions(); if (!o.length) return;
+  let i = o.indexOf(nPuppets); if (i < 0) i = 0;
+  nPuppets = o[Math.max(0, Math.min(o.length - 1, i + d))]; poseDeck = []; nRounds = Math.min(nRounds, maxRounds());
+}
 function maxRounds() { return Math.max(1, Math.floor(okPoses().length / 2)); }
 function nextPose() {
   if (!poseDeck.length) {
@@ -356,18 +365,19 @@ function stepper3(label, yTop, val, idm, idp) {
   setFont(40, SOFT); const lw = ctx.measureText(label).width + 60;
   box(VW / 2 - lw / 2, yTop - 28, lw, 56, C.white, { sh: 4, bw: 5, n: 6 });
   T(label, VW / 2, yTop, 40, SOFT, C.ink);
-  btn(idm, 480, yTop + 40, 150, 130, '-', { fill: C.pink, size: 100 });
-  box(690, yTop + 40, 540, 130, C.white, { sh: 8 });
-  T(String(val), VW / 2, yTop + 108, fitSize(String(val), 480, 80, PIX), PIX, C.gold);
-  btn(idp, 1290, yTop + 40, 150, 130, '+', { fill: C.mint, size: 100 });
+  btn(idm, 480, yTop + 36, 150, 110, '-', { fill: C.pink, size: 90 });
+  box(690, yTop + 36, 540, 110, C.white, { sh: 8 });
+  T(String(val), VW / 2, yTop + 93, fitSize(String(val), 480, 70, PIX), PIX, C.gold);
+  btn(idp, 1290, yTop + 36, 150, 110, '+', { fill: C.mint, size: 90 });
 }
 function sSetup() {
   box(250, 30, 1420, 110, C.white, { sh: 8 });
   T('CONFIGURA EL JUEGO', VW / 2, 88, fitSize('CONFIGURA EL JUEGO', 1340, 44, PIX), PIX, C.gold);
-  stepper3('Rondas por equipo', 215, nRounds, 'rm', 'rp');
-  stepper3('Segundos que se ve la pose', 445, flashSecs.toFixed(1), 'fm', 'fp');
-  stepper3('Segundos para moldear', 675, moldSecs, 'tm', 'tp');
-  btn('confirm', 460, 905, 1000, 130, 'CONFIRMAR', { fill: C.green, size: 76 });
+  stepper3('Títeres por turno (quienes NO ven la pose)', 195, nPuppets, 'um', 'up');
+  stepper3('Rondas por equipo', 375, nRounds, 'rm', 'rp');
+  stepper3('Segundos que se ve la pose', 555, flashSecs.toFixed(1), 'fm', 'fp');
+  stepper3('Segundos para moldear', 735, moldSecs, 'tm', 'tp');
+  btn('confirm', 460, 925, 1000, 120, 'CONFIRMAR', { fill: C.green, size: 70 });
 }
 function sIntro() {
   T('TURNO ' + (turnNo + 1) + ' DE ' + totalTurns, 700, 90, 36, PIX, C.ink);
@@ -377,7 +387,7 @@ function sIntro() {
   box(-640, -120, 1280, 240, TEAM_COL[curTeam], { sh: 14, bw: 10 });
   T(teams[curTeam].name, 0, 0, fitSize(teams[curTeam].name, 1180, 120, SOFT, 40), SOFT, C.ink); ctx.restore();
   box(60, 560, 1280, 250, C.white, { sh: 8, bw: 6 });
-  para('El TÍTERE se para de ESPALDAS al tele (o con los ojos cerrados). El equipo mira la pantalla: la pose aparece solo ' + flashSecs.toFixed(1) + ' s.', 700, 650, 1180, 40, 28, 3, SOFT, C.ink);
+  para((nPuppets > 1 ? 'Los ' + nPuppets + ' TÍTERES se paran' : 'El TÍTERE se para') + ' de ESPALDAS al tele (o con los ojos cerrados): ¡sin ver! El resto del equipo mira la pantalla: la pose aparece solo ' + flashSecs.toFixed(1) + ' s.', 700, 650, 1180, 40, 28, 3, SOFT, C.ink);
   T('¡Después lo moldean de memoria!', 700, 770, 36, SOFT, C.ink);
   btn('show', 190, 850, 1020, 180, '¡LISTOS! MOSTRAR POSE', { fill: C.green, size: 72 });
   board();
@@ -402,7 +412,7 @@ function sMold() {
   if (left <= 0) { play('buzz'); go('reveal'); return; }
   const low = left <= 10;
   if (secs !== sMold.last) { sMold.last = secs; if (low) play('tick'); }
-  T('¡MOLDEN AL TÍTERE!', 700, 90, 52, PIX, C.gold);
+  T(nPuppets > 1 ? '¡MOLDEN A LOS TÍTERES!' : '¡MOLDEN AL TÍTERE!', 700, 90, 52, PIX, C.gold);
   T(teams[curTeam].name, 700, 180, fitSize(teams[curTeam].name, 1200, 64, SOFT, 30), SOFT, C.ink);
   const pulse = low ? 1 + Math.sin(t * 12) * 0.06 : 1;
   ctx.save(); ctx.translate(700, 380); ctx.scale(pulse, pulse); T(String(secs), 0, 0, 240, SOFT, low ? '#D9695F' : C.ink); ctx.restore();
@@ -469,6 +479,8 @@ function act(id) {
   if (scr === 'fact') { if (scrT > 1.5) scrT = factDur; return; }
   switch (id) {
     case 'play': play('start'); startFact('setup', 4.5); break;
+    case 'um': stepPuppets(-1); play('tick'); break;
+    case 'up': stepPuppets(1); play('tick'); break;
     case 'rm': nRounds = Math.max(1, nRounds - 1); play('tick'); break;
     case 'rp': nRounds = Math.min(maxRounds(), nRounds + 1); play('tick'); break;
     case 'fm': flashSecs = Math.max(0.5, flashSecs - 0.5); play('tick'); break;
