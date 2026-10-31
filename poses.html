@@ -179,7 +179,10 @@ function drawHeads(count, alpha) {
 
 // ---------- Poses ----------
 const POSES = ['La inclinación imposible', 'Celebración SIUUU', 'El Chavo del 8', 'Po, de Kung Fu Panda', 'Spider-Man',
-  'Deadpool con corazón', 'El saludo', 'Messi: ¿qué mirás, bobo?', 'Shrek acechando'];
+  'Deadpool con corazón', 'El saludo', 'Messi: ¿qué mirás, bobo?', 'Shrek acechando',
+  'Kamehameha de Goku', 'Titanic: ¡soy el rey del mundo!', 'Superman volando', 'El rayo de Bolt', 'Thanos: el chasquido', 'Elsa de Frozen',
+  'Pelea estilo Bruce Lee', 'Minnie Mouse', 'La pose de Shakira', 'Cristo Redentor', 'Neo esquivando balas', 'Mario saltando', 'Pose de poder de Beyoncé',
+  'Karate Kid: la grulla', 'Hulk furioso', 'Ronaldinho: ¡hang loose!', 'Bad Bunny agachado', 'Mr. Bean sentado'];
 const poseImgs = POSES.map((nm, i) => {
   const e = { name: nm, im: new Image(), ok: false };
   e.im.onload = () => { e.ok = true; };
