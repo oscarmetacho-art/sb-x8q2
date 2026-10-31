@@ -28,8 +28,6 @@ const ZONES = [
 ];
 // Orden de capas (el número más alto queda encima, sin importar en qué orden se pinchen)
 const PRIO = { cuello: 1, barbilla: 2, pomulos: 3, parpados: 4, nariz: 5, labios: 6 };
-// Zonas que se cruzan demasiado entre sí: si una está tuneada, la otra ya no se puede
-const CONFLICT = { pomulos: ['parpados'], parpados: ['pomulos'], barbilla: ['cuello'], cuello: ['barbilla'] };
 ZONES.forEach(z => { z.prio = PRIO[z.n]; });
 
 // Retos para el que pierde. shot: si no lo cumple, toma un shot. secs: tiempo del cronómetro.
@@ -135,11 +133,6 @@ function hitsAt(x, y) {
     if (hits.length) break;
   }
   return hits.sort((a, b) => a.area - b.area);
-}
-// Si la zona no se puede tunear ahora, devuelve la zona ya aplicada que la bloquea
-function blockedBy(z) {
-  if (appliedList.includes(z)) return z;
-  return appliedList.find(a => (CONFLICT[z.n] || []).includes(a.n)) || null;
 }
 
 // ---------- Foto de trabajo (acumula los cambios) ----------
@@ -267,14 +260,9 @@ function inject(outside) {
   const hits = hitsAt(cursor.x, cursor.y);
   // pelo, frente, fondo o cualquier parte sin botox: pierdes
   if (!hits.length) { lose('Eso no era una zona de botox: le diste al pelo, al fondo o a la piel sin tunear.', 'miss'); return; }
-  const z = hits.find(h => !blockedBy(h));
+  const z = hits.find(h => !appliedList.includes(h));
+  if (!z) { lose('Esa zona ya estaba tuneada: repetir cuenta como fallo.', 'miss'); return; }
   revealT = 0; st = 'reveal';
-  if (!z) {
-    const b = blockedBy(hits[0]);
-    result = { zone: null, msg: b === hits[0] ? 'Esa zona ya estaba tuneada. ¡Elige otra!'
-      : 'Eso se cruza con ' + b.t.toLowerCase() + ', que ya estaba tuneado. ¡Elige otra!' };
-    sndMeh(); return;
-  }
   result = { zone: z, msg: z.msg };
   beginBlend(z); sndPop(); sndInflate(); sndWin();
 }
@@ -431,7 +419,7 @@ function drawRight() {
     ctx.font = Math.round(32 * u) + 'px Arial'; ctx.fillStyle = '#e8dff0';
     wrap('Mueve el círculo y haz clic para inyectar.', x, 270 * u, w, 44 * u);
     ctx.fillStyle = '#ff8a8a';
-    wrap('Si haces clic fuera de la foto o en el pelo, la frente o el fondo, pierdes.', x, 400 * u, w, 44 * u);
+    wrap('Pierdes si haces clic fuera de la foto, en el pelo, la frente o el fondo, o si repites una zona.', x, 400 * u, w, 44 * u);
     const frac = Math.max(0, timeLeft / TURN_SECONDS);
     ctx.fillStyle = 'rgba(255,255,255,0.15)'; rrect(x, 540 * u, w, 36 * u, 18 * u); ctx.fill();
     ctx.fillStyle = frac > 0.3 ? '#4cd964' : '#ff453a'; rrect(x, 540 * u, Math.max(w * frac, 30 * u), 36 * u, 18 * u); ctx.fill();
