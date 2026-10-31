@@ -182,9 +182,42 @@ const POSES = ['La inclinación imposible', 'Celebración SIUUU', 'El Chavo del 
   'Deadpool con corazón', 'El saludo', 'Messi: ¿qué mirás, bobo?', 'Shrek acechando',
   'Kamehameha de Goku', 'Titanic: ¡soy el rey del mundo!', 'Superman volando', 'El rayo de Bolt', 'Thanos: el chasquido', 'Elsa de Frozen',
   'Pelea estilo Bruce Lee', 'Minnie Mouse', 'La pose de Shakira', 'Cristo Redentor', 'Neo esquivando balas', 'Mario saltando', 'Pose de poder de Beyoncé',
-  'Karate Kid: la grulla', 'Hulk furioso', 'Ronaldinho: ¡hang loose!', 'Bad Bunny agachado', 'Mr. Bean sentado'];
+  'Karate Kid: la grulla', 'Hulk furioso', 'Ronaldinho: ¡hang loose!', 'Bad Bunny agachado', 'Mr. Bean sentado',
+  '300: ¡esto es Esparta!',
+  'Cantando a todo pulmón en las gradas',
+  'Colgado de un precipicio',
+  'Spider-Man y el puro del jefe',
+  'Cantando bajo la lluvia',
+  'Dirty Dancing: la pareja',
+  'Tango con pierna en alto',
+  'Rafiki levanta a Simba',
+  'Aladdín y Jasmine en la alfombra',
+  'Pareja de salsa',
+  'Los Increíbles: Mr. Increíble y Elastigirl',
+  'La Bella y la Bestia bailando',
+  'Patinaje artístico en pareja',
+  'Espalda con espalda: pistolas con los dedos',
+  'Dos amigas boca abajo en el pasto',
+  'Titanic: el rey del mundo y su amigo',
+  'El Padrino: el secreto al oído',
+  'Avatar: la pareja y la flecha',
+  'La dama y el vagabundo: el espagueti',
+  'Up: acostados en el pasto',
+  'El beso bajo la lluvia',
+  'Crepúsculo: la pareja asustada',
+  'Los Tres Chiflados',
+  'Las Chicas Superpoderosas',
+  'Los tres mosqueteros',
+  'Los tres monos sabios',
+  'La familia Addams',
+  'Power Rangers clásicos',
+  'Power Rangers en pose',
+  'Los tres Reyes Magos',
+  'El podio de ganadores',
+  'Abrazo de tres',
+  'Harry, Ron y Hermione'];
 // Cuántos títeres necesita cada pose (índice 0-based en POSES). Las que no están aquí son de 1 persona.
-const POSE_N = { 10: 2 };
+const POSE_N = {10: 2, 32: 2, 33: 2, 34: 2, 35: 2, 36: 2, 37: 2, 38: 2, 39: 2, 40: 2, 41: 2, 42: 2, 43: 2, 44: 2, 45: 2, 46: 2, 47: 2, 48: 2, 49: 3, 50: 3, 51: 3, 52: 3, 53: 3, 54: 3, 55: 3, 56: 3, 57: 3, 58: 3, 59: 3};
 const poseImgs = POSES.map((nm, i) => {
   const e = { name: nm, im: new Image(), ok: false, n: POSE_N[i] || 1 };
   e.im.onload = () => { e.ok = true; };
