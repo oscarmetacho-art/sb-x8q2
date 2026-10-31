@@ -34,21 +34,12 @@ try { document.fonts.load('30px "Press Start 2P"'); document.fonts.load('700 30p
 
 // ---------- Datos ----------
 const FACTS = [
-  '¿Sabías que Luz tiene un proyector que nunca usa?',
-  '¿Sabías que Katyshei nunca lanzaron el juego de mesa?',
-  '¿Sabían que Brandon y Valentina nunca le dieron los zapatos a Metacho?',
-  '¿Sabías que Metacho compró una máquina de marquesitas y no la usa?',
-  '¿Y qué pasó con la cuenta del calvo de los outfits?',
-  '¿Sabías que Shei y Metacho perdieron 1.5M pagando la visa y se las negaron?',
-  'Dayana no sabe elegir maridos',
   'Una vez Brandon y Metacho vendieron ropa interior de hombre chiviada',
-  'Tatiana y Santiago ahora viven juntos',
   '¡Felicidades Kat y David por la camioneta!',
   'Poderosas será un éxito',
   'El Card Show será el mejor evento del mundo',
   '¡Javier Suárez tiene un nuevo trabajo! Felicidades',
   'Luz dará sesiones con la Bio-Well y se hará millonaria',
-  'Metacho usa la IA para hacer este juego y más',
   'Laura tiene los mejores chistes de doble sentido',
   'Hoy están reunidas las mejores mamás del mundo',
   '¡PODEROSAS 21 DE NOVIEMBRE!',
@@ -179,6 +170,34 @@ function sheiAt(idx, x, y, w, rot, alpha, shine) {
     src = tmp;
   }
   ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(src, -w / 2, -h / 2, w, h); ctx.restore();
+}
+// Stickers/memes pequeños: se leen de img/memes/m01.png ... m30.png (los que no existan se ignoran)
+const memes = [];
+for (let i = 1; i <= 30; i++) {
+  ['png', 'jpg'].forEach(ext => {
+    const im = new Image(); im.onload = () => { if (!memes.some(m => m.n === i)) memes.push({ n: i, im }); };
+    im.src = 'img/memes/m' + (i < 10 ? '0' : '') + i + '.' + ext;
+  });
+}
+const mfloat = [];
+function updateMemes(dt) {
+  if (memes.length && mfloat.length < 3 && rnd(100) < 3) {
+    const m = memes[rnd(memes.length)];
+    if (!mfloat.some(f => f.m === m)) {
+      const fromLeft = rnd(2) === 0;
+      mfloat.push({ m, x: fromLeft ? -100 : 1500, y: 80 + rnd(820), vx: (fromLeft ? 1 : -1) * (35 + rnd(40)), vy: rnd(30) - 15, rot: (rnd(40) - 20) / 100, life: 0, dur: 9 + rnd(6), sz: 110 + rnd(50) });
+    }
+  }
+  mfloat.forEach(f => { f.x += f.vx * dt; f.y += f.vy * dt; f.life += dt; });
+  for (let i = mfloat.length - 1; i >= 0; i--) if (mfloat[i].life > mfloat[i].dur) mfloat.splice(i, 1);
+}
+function drawMemes() {
+  mfloat.forEach(f => {
+    const a = Math.min(1, f.life / 1.5, (f.dur - f.life) / 1.5) * (scr === 'play' ? 0.3 : 0.6);
+    const w = f.sz, h = w * f.m.im.height / f.m.im.width;
+    ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(f.x, f.y); ctx.rotate(f.rot + Math.sin(t + f.x) * 0.05);
+    ctx.drawImage(f.m.im, -w / 2, -h / 2, w, h); ctx.restore();
+  });
 }
 const heads = [];
 for (let i = 0; i < 12; i++) heads.push({
@@ -359,7 +378,7 @@ function board() {
 
 // ---------- Pantallas ----------
 function sTitle() {
-  drawHeads(10, 1);
+  drawHeads(12, 1);
   const bob = Math.sin(t * 3) * 8;
   box(260, 150 + bob, 1400, 430, C.white, { sh: 16, bw: 10 });
   const l1 = 'CHARADAS', l2 = 'CUMPLEAÑERAS';
@@ -418,17 +437,19 @@ function sNames() {
   box(250, 24, 1420, 110, C.white, { sh: 8 });
   T('¡NOMBRES DE LAS PAREJAS!', VW / 2, 80, fitSize('¡NOMBRES DE LAS PAREJAS!', 1340, 44, PIX), PIX, C.gold);
   const cols = 4, rows = Math.ceil(pairs.length / cols), gap = 24, cw = (1920 - 120 - gap * 3) / cols;
-  const rh = Math.min(120, (610 - (rows - 1) * 20) / rows);
+  const rh = Math.min(116, (560 - (rows - 1) * 16) / rows);
   pairs.forEach((p, i) => {
     const appear = Math.min(1, Math.max(0, scrT * 7 - i)); if (appear <= 0) return;
-    const r = Math.floor(i / cols), c = i % cols, x = 60 + c * (cw + gap), y = 165 + r * (rh + 20);
+    const r = Math.floor(i / cols), c = i % cols, x = 60 + c * (cw + gap), y = 160 + r * (rh + 16);
     const pop = 1 + (1 - appear) * 0.25;
     ctx.save(); ctx.translate(x + cw / 2, y + rh / 2); ctx.scale(pop, pop); ctx.translate(-cw / 2, -rh / 2);
     ctx.globalAlpha = appear; box(0, 0, cw, rh, catColor(i), { sh: 6, bw: 6 });
     T(p.name, cw / 2, rh / 2, fitSize(p.name, cw - 40, rh * 0.5, SOFT, 16), SOFT, C.ink); ctx.restore();
   });
-  box(110, 800, 1700, 130, C.white, { sh: 8, bw: 6 });
-  para(tickFact, VW / 2, 865, 1600, 44, 28, 2, SOFT, C.ink);
+  box(110, 818, 1700, 118, '#F7F1FB', { sh: 6, bw: 4, border: '#9C86C4' });
+  box(740, 790, 440, 48, '#9C86C4', { sh: 0, bw: 4, n: 6, border: '#9C86C4' });
+  T('DATO CURIOSO', 960, 815, 30, SOFT, C.white);
+  para(tickFact, VW / 2, 888, 1600, 40, 26, 2, SOFT, C.ink);
   btn('reroll', 60, 955, 520, 100, 'OTRO SORTEO', { fill: C.lav, size: 48 });
   btn('done', 620, 955, 1240, 100, '¡LISTO! TODOS TIENEN NOMBRE', { fill: C.green, size: 52 });
   if (scrT - tickBase >= 5) { tickFact = nextFact(); tickBase = scrT; }
@@ -604,10 +625,10 @@ cv.addEventListener('click', e => {
 let prev = performance.now();
 function frame() {
   const nw = performance.now(), dt = Math.min(0.05, (nw - prev) / 1000); prev = nw; t += dt; scrT += dt; now = nw / 1000;
-  updateHeads(dt); updateConf(dt);
+  updateHeads(dt); updateMemes(dt); updateConf(dt);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(SC, 0, 0, SC, OX, OY);
-  drawBg();
+  drawBg(); drawMemes();
   btns = [];
   ({ title: sTitle, fact: sFact, pairs: sPairs, names: sNames, cats: sCats, intro: sIntro, play: sPlay, end: sEnd, final: sFinal })[scr]();
   drawConf();
