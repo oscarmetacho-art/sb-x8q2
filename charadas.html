@@ -195,11 +195,11 @@ for (let i = 1; i <= 30; i++) {
 }
 const mfloat = [];
 function updateMemes(dt) {
-  if (memes.length && mfloat.length < 3 && rnd(100) < 3) {
+  if (memes.length && mfloat.length < 4 && rnd(100) < 5) {
     const m = memes[rnd(memes.length)];
     if (!mfloat.some(f => f.m === m)) {
       const fromLeft = rnd(2) === 0;
-      mfloat.push({ m, x: fromLeft ? -100 : 1500, y: 80 + rnd(820), vx: (fromLeft ? 1 : -1) * (35 + rnd(40)), vy: rnd(30) - 15, rot: (rnd(40) - 20) / 100, life: 0, dur: 9 + rnd(6), sz: 200 + rnd(80) });
+      mfloat.push({ m, x: fromLeft ? -100 : 1500, y: 80 + rnd(820), vx: (fromLeft ? 1 : -1) * (35 + rnd(40)), vy: rnd(30) - 15, rot: (rnd(40) - 20) / 100, life: 0, dur: 9 + rnd(6), sz: 260 + rnd(90) });
     }
   }
   mfloat.forEach(f => { f.x += f.vx * dt; f.y += f.vy * dt; f.life += dt; });
@@ -207,7 +207,7 @@ function updateMemes(dt) {
 }
 function drawMemes() {
   mfloat.forEach(f => {
-    const a = Math.min(1, f.life / 1.5, (f.dur - f.life) / 1.5) * (scr === 'play' ? 0.45 : 0.85);
+    const a = Math.min(1, f.life / 1.5, (f.dur - f.life) / 1.5) * (scr === 'play' ? 0.5 : 0.97);
     const w = f.sz, h = w * f.m.im.height / f.m.im.width;
     ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(f.x, f.y); ctx.rotate(f.rot + Math.sin(t + f.x) * 0.05);
     ctx.drawImage(f.m.im, -w / 2, -h / 2, w, h); ctx.restore();
@@ -392,7 +392,6 @@ function board() {
 
 // ---------- Pantallas ----------
 function sTitle() {
-  drawHeads(12, 1);
   const bob = Math.sin(t * 3) * 8;
   box(260, 150 + bob, 1400, 430, C.white, { sh: 16, bw: 10 });
   const l1 = 'CHARADAS', l2 = 'CUMPLEAÑERAS';
@@ -414,7 +413,6 @@ function sTitle() {
   if (blink) T('- HAZ CLIC PARA EMPEZAR -', VW / 2, 960, 24, PIX, C.ink);
 }
 function sFact() {
-  drawHeads(8, 0.9);
   box(120, 120, 1680, 120, C.white, { sh: 8 });
   T('CARGANDO...', VW / 2, 180, 52, PIX, C.gold);
   const segs = 24, prog = Math.min(1, scrT / factDur), fill = Math.floor(prog * segs);
@@ -439,7 +437,6 @@ function stepper(label, yTop, val, idm, idp, unit) {
   if (unit) { setFont(32, SOFT); const uw = ctx.measureText(unit).width + 50; box(VW / 2 - uw / 2, yTop + 244, uw, 50, C.white, { sh: 0, bw: 4, n: 5 }); T(unit, VW / 2, yTop + 270, 32, SOFT, C.ink); }
 }
 function sPairs() {
-  drawHeads(9, 0.85);
   box(250, 40, 1420, 110, C.white, { sh: 8 });
   T('CONFIGURA EL JUEGO', VW / 2, 98, fitSize('CONFIGURA EL JUEGO', 1340, 44, PIX), PIX, C.gold);
   stepper('¿Cuántas parejas juegan?', 190, nPairs, 'pm', 'pp', '= ' + nPairs * 2 + ' jugadores');
@@ -447,7 +444,6 @@ function sPairs() {
   btn('confirm', 460, 880, 1000, 150, 'CONFIRMAR', { fill: C.green, size: 80 });
 }
 function sNames() {
-  drawHeads(8, 0.8);
   box(250, 24, 1420, 110, C.white, { sh: 8 });
   T('¡NOMBRES DE LAS PAREJAS!', VW / 2, 80, fitSize('¡NOMBRES DE LAS PAREJAS!', 1340, 44, PIX), PIX, C.gold);
   const cols = 4, rows = Math.ceil(pairs.length / cols), gap = 24, cw = (1920 - 120 - gap * 3) / cols;
@@ -469,7 +465,6 @@ function sNames() {
   if (scrT - tickBase >= 5) { tickFact = nextFact(); tickBase = scrT; }
 }
 function sCats() {
-  drawHeads(8, 0.7);
   box(250, 24, 1420, 110, C.white, { sh: 8 });
   T('ELIGE LAS CATEGORÍAS', VW / 2, 80, fitSize('ELIGE LAS CATEGORÍAS', 1340, 44, PIX), PIX, C.gold);
   const cw = 560, ch = 150, gap = 20;
@@ -489,7 +484,6 @@ function sCats() {
 }
 function rollInit() { scrT = 0; lastRollIdx = -1; }
 function sIntro() {
-  drawHeads(5, 0.4);
   T('TURNO ' + (turnNo + 1) + ' DE ' + totalTurns, 700, 90, 36, PIX, C.ink);
   T('LE TOCA A...', 700, 190, 48, SOFT, C.ink);
   const rolling = scrT < 1.5;
@@ -507,7 +501,6 @@ function sIntro() {
   board();
 }
 function sPlay() {
-  drawHeads(3, 0.12);
   const left = Math.max(0, TURN_SECONDS - (performance.now() - tStart) / 1000), secs = Math.ceil(left);
   if (secs !== lastSec) { lastSec = secs; if (secs <= 10 && secs > 0) play('tick'); }
   if (left <= 0) { endTurn(); return; }
@@ -531,7 +524,6 @@ function sPlay() {
   board();
 }
 function sEnd() {
-  drawHeads(4, 0.35);
   sheiAt(0, 240, 720, 360, Math.sin(t * 2) * 0.12, 1, ((t * 0.3) % 1.4) / 1.4);
   sheiAt(1, 1140, 720, 360, -Math.sin(t * 2) * 0.12, 1, ((t * 0.3 + 0.5) % 1.4) / 1.4);
   T('¡SE ACABÓ EL TIEMPO!', 700, 90, fitSize('¡SE ACABÓ EL TIEMPO!', 1300, 48, PIX), PIX, C.gold);
@@ -546,7 +538,6 @@ function sEnd() {
   board();
 }
 function sFinal() {
-  drawHeads(6, 0.5);
   const max = Math.max(...pairs.map(p => p.score)), win = pairs.filter(p => p.score === max);
   const nm = win.map(p => p.name).join(' & ');
   T(win.length > 1 ? '¡EMPATE!' : '¡PAREJA GANADORA!', 700, 110, 52, PIX, C.gold);
@@ -639,10 +630,14 @@ cv.addEventListener('click', e => {
 let prev = performance.now();
 function frame() {
   const nw = performance.now(), dt = Math.min(0.05, (nw - prev) / 1000); prev = nw; t += dt; scrT += dt; now = nw / 1000;
-  updateHeads(dt); updateMemes(dt); updateConf(dt);
+  updateHeads(dt); if (!(scr === 'title' || (scr === 'fact' && factNext === 'pairs'))) updateMemes(dt); updateConf(dt);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(SC, 0, 0, SC, OX, OY);
-  drawBg(); drawMemes();
+  drawBg();
+  const faceOnly = scr === 'title' || (scr === 'fact' && factNext === 'pairs');
+  const HC = { title: [12, 1], fact: [faceOnly ? 10 : 2, 0.9], play: [1, 0.25] }[scr] || [2, 0.85];
+  drawHeads(HC[0], HC[1]);
+  if (faceOnly) mfloat.length = 0; else drawMemes();
   btns = [];
   ({ title: sTitle, fact: sFact, pairs: sPairs, names: sNames, cats: sCats, intro: sIntro, play: sPlay, end: sEnd, final: sFinal })[scr]();
   drawConf();
