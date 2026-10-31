@@ -170,7 +170,7 @@ let attempt = 1;
 let cursor = { x: IMG_W / 2, y: IMG_H * 0.4 }, holdT = 0, timeLeft = TURN_SECONDS;
 let result = null, revealT = 0, t = 0, lastKeyOk = 0, lastPoint = null;
 let loseWhy = 'out';
-let chall = null, lastChall = null, cPhase = 'ready', cDone = 'ok', challT = CHALL_SECONDS, deck = [];
+let challStart = 0, chall = null, lastChall = null, cPhase = 'ready', cDone = 'ok', challT = CHALL_SECONDS, deck = [];
 const held = { L: false, R: false, U: false, D: false };
 
 // ---------- Sonido ----------
@@ -251,7 +251,7 @@ function startChallenge() {
     deck = shuffle(CHALLENGES.slice());
     if (deck.length > 1 && deck[deck.length - 1] === lastChall) deck.unshift(deck.pop());   // no repetir el último
   }
-  chall = lastChall = deck.pop(); cPhase = 'ready'; st = 'chall'; sndReveal();
+  chall = lastChall = deck.pop(); cPhase = 'run'; challT = chall.secs; challStart = performance.now(); st = 'chall'; sndReveal();
   resetWork(); attempt = 1;     // el juego se reinicia
 }
 
@@ -274,7 +274,7 @@ function ok() {
   else if (st === 'lose') { if (revealT > 0.5) startChallenge(); }
   else if (st === 'chall') {
     if (cPhase === 'ready') { cPhase = 'run'; challT = chall.secs; sndStart(); }
-    else if (cPhase === 'run') { cPhase = 'done'; cDone = 'ok'; sndWin(); }
+    else if (cPhase === 'run') { if (performance.now() - challStart > 800) { cPhase = 'done'; cDone = 'ok'; sndWin(); } }
     else st = 'home';
   }
 }
