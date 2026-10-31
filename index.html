@@ -3,190 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ponle botox a Shei</title>
+<title>Fiesta de Cumpleaños</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  html,body{margin:0;height:100%;background:#FBF3E4;overflow:hidden;font-family:Arial,Helvetica,sans-serif}
-  canvas{display:block;width:100vw;height:100vh}
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #FBF3E4; }
+  canvas { display: block; width: 100vw; height: 100vh; }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <script>
-// ---------- Configuración ----------
-const IMG_W = 875, IMG_H = 1798;      // tamaño de la foto (coordenadas del juego)
-const WS = 0.75;                      // escala de la foto de trabajo
-const TURN_SECONDS = 20;
+// ============ Fiesta de Cumpleaños ============
+const VW = 1920, VH = 1080;                       // lienzo virtual 16:9
+const C = { bg: '#FBF3E4', bg2: '#F2E5CC', ink: '#5A4632', gold: '#C9A24B', gold2: '#F0D98C', pink: '#F5CBD2',
+            mint: '#BFE3CC', green: '#8ED1A5', red: '#F2A7A0', lav: '#DCD0EE', white: '#FFFDF8', peach: '#F8DCC0' };
+const PASTELS = [C.pink, C.mint, C.lav, C.peach, C.gold2];
+const PIX = "'Press Start 2P', 'Courier New', monospace";
+const SOFT = "'Fredoka', 'Trebuchet MS', Arial, sans-serif";
+const TURN_SECONDS = 60;
 
-// Cada zona tiene sus archivos assets/after_<n>.jpg y assets/mask_<n>.png (ver prepare_assets.py)
-const ZONES = [
-  { n: 'labios',   t: 'Labios',   grow: 1,    msg: '¡Labios de pato nivel experto!' },
-  { n: 'nariz',    t: 'Nariz',    grow: 1,    msg: '¡Nariz de payaso!' },
-  { n: 'parpados', t: 'Párpados', grow: 1,    msg: '¡Ojos de muñeca!' },
-  { n: 'pomulos',  t: 'Pómulos',  grow: 1,    msg: '¡Pómulos de silicona!' },
-  { n: 'barbilla', t: 'Barbilla', grow: 1,    msg: '¡Mentón de villano de caricatura!' },
-  { n: 'cuello',   t: 'Cuello',   grow: 0.4,  msg: '¡Cuello de jirafa!' },
-];
-// Orden de capas (el número más alto queda encima, sin importar en qué orden se pinchen)
-const PRIO = { cuello: 1, barbilla: 2, pomulos: 3, parpados: 4, nariz: 5, labios: 6 };
-ZONES.forEach(z => { z.prio = PRIO[z.n]; });
-
-// Retos para el que pierde. shot: si no lo cumple, toma un shot. secs: tiempo del cronómetro.
-// kind 'q' = pregunta sobre la cumpleañera (la responde el perdedor; si falla, shot).
-const CHALL_SECONDS = 30;
-const mk = (t, extra) => Object.assign({ t, shot: true, secs: CHALL_SECONDS, kind: 'r' }, extra);
-const CHALLENGES = [
-  mk('Quítale un calcetín a alguien'),
-  mk('Baila bachata con alguien que elijan los demás'),
-  mk('FONDO BLANCO', { shot: false }),
-  mk('Dale un abrazo de 30 segundos a un desconocido'),
-  mk('Carga a otro invitado durante 10 segundos'),
-  mk('10 sentadillas'),
-  mk('Modela tu outfit por la pasarela'),
-  mk('Intercambia los zapatos con la persona que elijan los demás'),
-  mk('Quédate sobre un solo pie'),
-  mk('Encuentra algo de comer y cómetelo'),
-  mk('Encuentra a alguien con una prenda azul'),
-  mk('Encuentra a alguien con una prenda verde'),
-  mk('Encuentra a alguien con una prenda amarilla'),
-  mk('Debes subirte a tuta a alguien por 10 segundos'),
-  mk('Sal, toca el timbre y vuelve'),
-  mk('Encuentra en la casa un objeto que tenga verde'),
-  mk('Encuentra en la casa un objeto que tenga azul'),
-  mk('Encuentra en la casa un objeto que tenga negro'),
-  mk('Encuentra en la casa un objeto que tenga pelos'),
-  mk('¿Cuál es su comida favorita?', { kind: 'q', secs: 20 }),
-  mk('¿Cómo se llamó su primer colegio?', { kind: 'q', secs: 20 }),
-  mk('¿Cuándo compró su moto?', { kind: 'q', secs: 20 }),
-  mk('¿Cuál fue su primer novio?', { kind: 'q', secs: 20 }),
-  mk('¿Cuándo se graduó de la universidad?', { kind: 'q', secs: 20 }),
-  mk('¿Cuál país fue su primer viaje internacional?', { kind: 'q', secs: 20 }),
-];
-
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-
-let W, H, S, PX, PY, u;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let SC = 1, OX = 0, OY = 0;
 function resize() {
-  cv.width = innerWidth; cv.height = innerHeight;
-  W = cv.width; H = cv.height; u = H / 1080;
-  S = (H - 24 * u) / IMG_H;
-  if (IMG_W * S > W * 0.5) S = (W * 0.5) / IMG_W;
-  PX = (W - IMG_W * S) / 2; PY = (H - IMG_H * S) / 2;
+  cv.width = Math.min(2560, innerWidth); cv.height = Math.min(1440, innerHeight);
+  SC = Math.min(cv.width / VW, cv.height / VH);
+  OX = (cv.width - VW * SC) / 2; OY = (cv.height - VH * SC) / 2;
 }
 addEventListener('resize', resize); resize();
+try { document.fonts.load('30px "Press Start 2P"'); document.fonts.load('700 30px "Fredoka"'); } catch (e) {}
 
-// ---------- Carga de imágenes ----------
-const baseImg = new Image();
-const wc = document.createElement('canvas'); wc.width = Math.round(IMG_W * WS); wc.height = Math.round(IMG_H * WS);
-const wctx = wc.getContext('2d');
-let appliedList = [];
-let pending = 1 + ZONES.length * 2;
-function oneLoaded() { if (--pending === 0) buildZones(); }
-baseImg.onload = oneLoaded; baseImg.onerror = oneLoaded; baseImg.src = 'assets/base.jpg';
-ZONES.forEach(z => {
-  z.after = new Image(); z.mask = new Image();
-  z.after.onload = z.after.onerror = oneLoaded; z.mask.onload = z.mask.onerror = oneLoaded;
-  z.after.src = 'assets/after_' + z.n + '.jpg'; z.mask.src = 'assets/mask_' + z.n + '.png';
-});
-
-// Por cada zona: mapa de impacto (canal G), capa lista para mezclar (after recortada con el canal B) y su centro
-function buildZones() {
-  const mc = document.createElement('canvas'); mc.width = IMG_W; mc.height = IMG_H;
-  const mx = mc.getContext('2d');
-  const ac = document.createElement('canvas'); ac.width = IMG_W; ac.height = IMG_H;
-  const ax = ac.getContext('2d');
-  ZONES.forEach(z => {
-    mx.clearRect(0, 0, IMG_W, IMG_H); mx.drawImage(z.mask, 0, 0, IMG_W, IMG_H);
-    const d = mx.getImageData(0, 0, IMG_W, IMG_H).data;
-    const out = ax.createImageData(IMG_W, IMG_H);
-    z.hit = new Uint8Array(IMG_W * IMG_H); z.area = 0; let sxs = 0, sys = 0;
-    for (let i = 0, p = 0; i < z.hit.length; i++, p += 4) {
-      out.data[p + 3] = d[p + 2];                        // alpha de mezcla = canal B
-      if (d[p + 1] > 127) {                              // zona de impacto = canal G
-        z.hit[i] = 1; z.area++; sxs += i % IMG_W; sys += (i / IMG_W) | 0;
-      }
-    }
-    z.cx = z.area ? sxs / z.area : IMG_W / 2; z.cy = z.area ? sys / z.area : IMG_H / 2;
-    ax.putImageData(out, 0, 0);
-    z.alphaC = document.createElement('canvas'); z.alphaC.width = wc.width; z.alphaC.height = wc.height;
-    z.alphaC.getContext('2d').drawImage(ac, 0, 0, wc.width, wc.height);
-    z.layer = document.createElement('canvas'); z.layer.width = wc.width; z.layer.height = wc.height;
-    const lx = z.layer.getContext('2d');
-    lx.drawImage(z.after, 0, 0, wc.width, wc.height);
-    lx.globalCompositeOperation = 'destination-in';
-    lx.drawImage(ac, 0, 0, wc.width, wc.height);
-  });
-  resetWork(); st = 'home';
-}
-
-// Zonas que cubren el punto (de la más chica a la más grande)
-function hitsAt(x, y) {
-  const ix = Math.round(x), iy = Math.round(y);
-  if (ix < 0 || iy < 0 || ix >= IMG_W || iy >= IMG_H) return [];
-  const at = (px, py) => {
-    if (px < 0 || py < 0 || px >= IMG_W || py >= IMG_H) return [];
-    return ZONES.filter(z => z.hit && z.hit[py * IMG_W + px]);
-  };
-  let hits = at(ix, iy);
-  for (const r of [14, 28, 42]) {            // el círculo del control no es tan preciso: se busca alrededor
-    for (let a = 0; a < 8 && !hits.length; a++) hits = at(Math.round(ix + r * Math.cos(a * Math.PI / 4)), Math.round(iy + r * Math.sin(a * Math.PI / 4)));
-    if (hits.length) break;
-  }
-  return hits.sort((a, b) => a.area - b.area);
-}
-
-// ---------- Foto de trabajo (acumula los cambios) ----------
-let blend = null;
-function resetWork() {
-  wctx.globalAlpha = 1; wctx.drawImage(baseImg, 0, 0, wc.width, wc.height); blend = null;
-  appliedList = [];
-}
-// La foto se arma siempre igual: original + capas por orden de prioridad (no depende de qué se pinchó primero)
-function beginBlend(z) {
-  const sorted = appliedList.slice().sort((a, b) => a.prio - b.prio);
-  const under = document.createElement('canvas'); under.width = wc.width; under.height = wc.height;
-  const ux = under.getContext('2d');
-  ux.drawImage(baseImg, 0, 0, wc.width, wc.height);
-  sorted.filter(a => a.prio < z.prio).forEach(a => ux.drawImage(a.layer, 0, 0));
-  const over = sorted.filter(a => a.prio > z.prio);
-  appliedList.push(z);
-  blend = { z, under, over, cx: z.cx * WS, cy: z.cy * WS };
-}
-// La zona crece desde algo más chica, se pasa de tamaño (rebote) y se asienta
-function stepBlend(p) {
-  const eo = x => 1 - Math.pow(1 - x, 3), eio = x => x * x * (3 - 2 * x);
-  let sc = p < 0.6 ? 0.8 + 0.32 * eo(p / 0.6) : 1.12 - 0.12 * eio((p - 0.6) / 0.4);
-  sc = 1 + (sc - 1) * blend.z.grow;
-  wctx.globalAlpha = 1; wctx.drawImage(blend.under, 0, 0);
-  wctx.save(); wctx.globalAlpha = Math.min(1, p / 0.3);
-  wctx.translate(blend.cx, blend.cy); wctx.scale(sc, sc); wctx.translate(-blend.cx, -blend.cy);
-  wctx.drawImage(blend.z.layer, 0, 0); wctx.restore(); wctx.globalAlpha = 1;
-  blend.over.forEach(a => wctx.drawImage(a.layer, 0, 0));
-}
-
-// ---------- Estado ----------
-let st = 'loading';        // loading | home | aim | reveal | lose
-let attempt = 1;
-let cursor = { x: IMG_W / 2, y: IMG_H * 0.4 }, holdT = 0, timeLeft = TURN_SECONDS;
-let result = null, revealT = 0, t = 0, lastKeyOk = 0, lastPoint = null;
-let loseWhy = 'out';
-let challStart = 0, chall = null, lastChall = null, cPhase = 'ready', cDone = 'ok', challT = CHALL_SECONDS, deck = [];
-const held = { L: false, R: false, U: false, D: false };
-
-// ---------- Sonido ----------
-// Se generan archivos WAV al cargar y se reproducen con <audio>: funciona en más navegadores de TV
-// que el audio sintetizado en vivo (Web Audio), que muchos bloquean.
-// Cada nota: [frecuencia inicial, final, duración, forma, volumen, retraso]
+// ---------- Sonido (WAV generado, como en el juego del botox) ----------
 const NOTES = {
-  pop:     [[700, 120, 0.25, 'triangle', 0.5, 0]],
-  inflate: [[180, 900, 0.55, 'sine', 0.4, 0], [900, 250, 0.2, 'triangle', 0.3, 0.55]],
-  win:     [523, 659, 784, 1047].map((f, i) => [f, f, 0.18, 'square', 0.25, i * 0.12]),
-  meh:     [[300, 150, 0.4, 'sawtooth', 0.25, 0]],
-  lose:    [392, 349, 294, 196].map((f, i) => [f, f * 0.97, 0.3, 'sawtooth', 0.3, i * 0.28]),
-  tick:    [[900, 900, 0.05, 'square', 0.15, 0]],
-  start:   [[440, 440, 0.12, 'square', 0.25, 0], [880, 880, 0.25, 'square', 0.25, 0.14]],
-  buzz:    [[150, 80, 0.7, 'sawtooth', 0.45, 0], [150, 80, 0.7, 'square', 0.25, 0.8]],
-  reveal:  [[300, 200, 0.5, 'sawtooth', 0.3, 0], [150, 600, 0.6, 'triangle', 0.35, 0.4]],
+  pop:   [[700, 120, 0.25, 'triangle', 0.5, 0]],
+  win:   [523, 659, 784, 1047].map((f, i) => [f, f, 0.18, 'square', 0.25, i * 0.12]),
+  ding:  [[880, 880, 0.1, 'square', 0.25, 0], [1320, 1320, 0.22, 'square', 0.25, 0.1]],
+  skip:  [[520, 240, 0.2, 'triangle', 0.35, 0]],
+  tick:  [[900, 900, 0.05, 'square', 0.15, 0]],
+  start: [[440, 440, 0.12, 'square', 0.25, 0], [880, 880, 0.25, 'square', 0.25, 0.14]],
+  buzz:  [[150, 80, 0.7, 'sawtooth', 0.45, 0], [150, 80, 0.7, 'square', 0.25, 0.8]],
+  fanfare: [523, 523, 523, 659, 784, 659, 784, 1047].map((f, i) => [f, f, 0.2, 'square', 0.25, i * 0.16]),
 };
 const wavUrls = {};
 function makeWav(notes) {
@@ -214,327 +69,266 @@ function makeWav(notes) {
   for (let i = 0; i < N; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, mix[i])) * 32767, true);
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
 }
-function buildSounds() { for (const k in NOTES) wavUrls[k] = makeWav(NOTES[k]); }
+for (const k in NOTES) wavUrls[k] = makeWav(NOTES[k]);
 function play(name) {
-  try {
-    if (!wavUrls[name]) return;
-    const a = new Audio(wavUrls[name]); a.volume = 1;
-    const pr = a.play(); if (pr && pr.catch) pr.catch(() => {});
-  } catch (e) {}
-}
-const sndPop = () => play('pop'), sndWin = () => play('win'), sndMeh = () => play('meh');
-const sndLose = () => play('lose'), sndTick = () => play('tick'), sndStart = () => play('start');
-const sndInflate = () => play('inflate'), sndBuzz = () => play('buzz'), sndReveal = () => play('reveal');
-buildSounds();
-
-// ---------- Lógica ----------
-function startAim() {
-  lastPoint = null; cursor = { x: IMG_W / 2, y: IMG_H * 0.4 }; holdT = 0; timeLeft = TURN_SECONDS;
-  st = 'aim'; sndStart();
+  try { if (!wavUrls[name]) return; const a = new Audio(wavUrls[name]); a.volume = 1; const pr = a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
 }
 
-function lose(reason, why) {
-  result = { zone: null, msg: reason }; revealT = 0; loseWhy = why;
-  st = 'lose'; sndLose();
-}
-// Azar bueno (Fisher-Yates + crypto): el sort con Math.random() sale muy sesgado en algunos navegadores de TV
+// ---------- Azar sin repetir ----------
 function rnd(n) {
-  try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; }
-  catch (e) { return Math.floor(Math.random() * n); }
+  try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; } catch (e) { return Math.floor(Math.random() * n); }
 }
-function shuffle(a) {
-  for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); const x = a[i]; a[i] = a[j]; a[j] = x; }
-  return a;
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); const x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+let factDeck = [], lastFact = null;
+function nextFact() {
+  if (!factDeck.length) { factDeck = shuffle(FACTS.slice()); if (factDeck[factDeck.length - 1] === lastFact) factDeck.unshift(factDeck.pop()); }
+  return lastFact = factDeck.pop();
 }
-function startChallenge() {
-  if (!deck.length) {
-    deck = shuffle(CHALLENGES.slice());
-    if (deck.length > 1 && deck[deck.length - 1] === lastChall) deck.unshift(deck.pop());   // no repetir el último
+
+// ---------- Imágenes de Shei ----------
+const imgs = [new Image(), new Image()], sprites = [null, null];
+const SPW = 300;
+imgs.forEach((im, i) => {
+  im.onload = () => {
+    const c = document.createElement('canvas'); c.width = SPW; c.height = Math.round(SPW * im.height / im.width);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); sprites[i] = c;
+  };
+  im.src = 'img/shei' + (i + 1) + '.png';
+});
+const tmp = document.createElement('canvas'), tctx = tmp.getContext('2d');
+function sheiAt(idx, x, y, w, rot, alpha, shine) {
+  const sp = sprites[idx]; if (!sp) return;
+  const h = w * sp.height / sp.width;
+  let src = sp;
+  if (shine !== undefined) {                       // franja de reflejo que cruza la imagen
+    tmp.width = sp.width; tmp.height = sp.height;
+    tctx.drawImage(sp, 0, 0);
+    tctx.globalCompositeOperation = 'source-atop';
+    const p = shine * (sp.width + sp.height * 0.6) - sp.height * 0.3;
+    const g = tctx.createLinearGradient(p - 38, 0, p + 38, 26);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    tctx.fillStyle = g; tctx.fillRect(0, 0, sp.width, sp.height);
+    tctx.globalCompositeOperation = 'source-over';
+    src = tmp;
   }
-  chall = lastChall = deck.pop(); cPhase = 'run'; challT = chall.secs; challStart = performance.now(); st = 'chall'; sndReveal();
-  resetWork(); attempt = 1;     // el juego se reinicia
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(src, -w / 2, -h / 2, w, h); ctx.restore();
 }
-
-function inject(outside) {
-  if (outside) { lose('Hiciste clic fuera de la foto.', 'out'); return; }
-  const hits = hitsAt(cursor.x, cursor.y);
-  // pelo, frente, fondo o cualquier parte sin botox: pierdes
-  if (!hits.length) { lose('Eso no era una zona de botox: le diste al pelo, al fondo o a la piel sin tunear.', 'miss'); return; }
-  const z = hits.find(h => !appliedList.includes(h));
-  if (!z) { lose('Esa zona ya estaba tuneada: repetir cuenta como fallo.', 'miss'); return; }
-  revealT = 0; st = 'reveal';
-  result = { zone: z, msg: z.msg };
-  beginBlend(z); sndPop(); sndInflate(); sndWin();
+// Stickers/memes pequeños: se leen de img/memes/m01.png ... m30.png (los que no existan se ignoran)
+const memes = [];
+for (let i = 1; i <= 30; i++) {
+  ['png', 'jpg'].forEach(ext => {
+    const im = new Image(); im.onload = () => { if (!memes.some(m => m.n === i)) memes.push({ n: i, im }); };
+    im.src = 'img/memes/m' + (i < 10 ? '0' : '') + i + '.' + ext;
+  });
 }
-
-function ok() {
-  if (st === 'home') startAim();
-  else if (st === 'aim') inject(false);
-  else if (st === 'reveal') { attempt++; st = 'home'; }
-  else if (st === 'lose') { if (revealT > 0.5) startChallenge(); }
-  else if (st === 'chall') {
-    if (cPhase === 'ready') { cPhase = 'run'; challT = chall.secs; sndStart(); }
-    else if (cPhase === 'run') { if (performance.now() - challStart > 800) { cPhase = 'done'; cDone = 'ok'; sndWin(); } }
-    else st = 'home';
+const mfloat = [];
+function updateMemes(dt) {
+  if (memes.length && mfloat.length < 4 && rnd(100) < 5) {
+    const m = memes[rnd(memes.length)];
+    if (!mfloat.some(f => f.m === m)) {
+      const fromLeft = rnd(2) === 0;
+      mfloat.push({ m, x: fromLeft ? -100 : 1500, y: 80 + rnd(820), vx: (fromLeft ? 1 : -1) * (35 + rnd(40)), vy: rnd(30) - 15, rot: (rnd(40) - 20) / 100, life: 0, dur: 9 + rnd(6), sz: 260 + rnd(90) });
+    }
+  }
+  mfloat.forEach(f => { f.x += f.vx * dt; f.y += f.vy * dt; f.life += dt; });
+  for (let i = mfloat.length - 1; i >= 0; i--) if (mfloat[i].life > mfloat[i].dur) mfloat.splice(i, 1);
+}
+function drawMemes() {
+  mfloat.forEach(f => {
+    const a = Math.min(1, f.life / 1.5, (f.dur - f.life) / 1.5) * (scr === 'play' ? 0.5 : 0.97);
+    const w = f.sz, h = w * f.m.im.height / f.m.im.width;
+    ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(f.x, f.y); ctx.rotate(f.rot + Math.sin(t + f.x) * 0.05);
+    ctx.drawImage(f.m.im, -w / 2, -h / 2, w, h); ctx.restore();
+  });
+}
+const heads = [];
+for (let i = 0; i < 12; i++) heads.push({
+  img: i % 2, x: rnd(VW), y: rnd(VH), vx: (rnd(80) + 25) * (rnd(2) ? 1 : -1), vy: (rnd(60) + 20) * (rnd(2) ? 1 : -1),
+  base: 190 + rnd(120), ph: rnd(628) / 100, sp: 0.8 + rnd(100) / 80, rs: 0.5 + rnd(100) / 100, sh: rnd(100) / 100,
+});
+function updateHeads(dt) {
+  heads.forEach(h => {
+    h.x += h.vx * dt; h.y += h.vy * dt;
+    if (h.x < 60 || h.x > VW - 60) h.vx = -h.vx;
+    if (h.y < 60 || h.y > VH - 60) h.vy = -h.vy;
+  });
+}
+function drawHeads(count, alpha) {
+  for (let i = 0; i < count; i++) {
+    const h = heads[i];
+    const w = h.base * (0.82 + 0.22 * Math.sin(t * h.sp + h.ph));
+    sheiAt(h.img, h.x, h.y, w, Math.sin(t * h.rs + h.ph) * 0.35, alpha, ((t * 0.28 + h.sh) % 1.6) / 1.6);
   }
 }
-function restartGame() {
-  if (st === 'loading') return;
-  resetWork(); attempt = 1; st = 'home';
-}
-const back = restartGame;
-// Botón permanente en la esquina superior derecha
-const restartBtn = () => ({ x: W - 300 * u, y: 20 * u, w: 280 * u, h: 64 * u });
 
-// ---------- Entrada: control remoto (flechas + OK) y puntero (círculo del control, mouse, touch) ----------
+
+// ---------- Confeti ----------
+let conf = [];
+function burst(x, y, n) {
+  for (let i = 0; i < n; i++) conf.push({ x, y, vx: (rnd(1400) - 700), vy: -(rnd(900) + 200), r: rnd(628) / 100, vr: rnd(20) - 10,
+    c: [C.gold, C.pink, C.mint, C.lav, C.gold2, C.peach][rnd(6)], s: 10 + rnd(14), life: 3 + rnd(200) / 100 });
+}
+function updateConf(dt) {
+  conf.forEach(p => { p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.995; p.r += p.vr * dt; p.life -= dt; });
+  conf = conf.filter(p => p.life > 0 && p.y < VH + 40);
+}
+function drawConf() {
+  conf.forEach(p => { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+}
+
+// ---------- Helpers de dibujo ----------
+function setFont(sz, fam, w) { ctx.font = (w || '700') + ' ' + Math.round(sz) + 'px ' + fam; }
+const ACC = /[ÁÉÍÓÚ]/;
+function T(str, x, y, sz, fam, col, al, w) {
+  if (fam === PIX && ACC.test(str)) { fam = SOFT; sz *= 1.15; }
+  setFont(sz, fam, fam === PIX ? '400' : w); ctx.fillStyle = col; ctx.textAlign = al || 'center'; ctx.textBaseline = 'middle'; ctx.fillText(str, x, y);
+}
+function fitSize(str, maxW, sz, fam, min) {
+  if (fam === PIX && ACC.test(str)) { fam = SOFT; sz *= 1.15; }
+  setFont(sz, fam, fam === PIX ? '400' : '700');
+  while (sz > (min || 14) && ctx.measureText(str).width > maxW) { sz -= 2; setFont(sz, fam, fam === PIX ? '400' : '700'); }
+  return sz;
+}
+function lines(str, maxW) {
+  const out = []; let l = '';
+  for (const w of str.split(' ')) { const tt = l ? l + ' ' + w : w; if (ctx.measureText(tt).width > maxW && l) { out.push(l); l = w; } else l = tt; }
+  if (l) out.push(l); return out;
+}
+function para(str, cx, cy, maxW, szMax, szMin, maxLines, fam, col) {
+  let sz = szMax, ls;
+  for (;;) { setFont(sz, fam); ls = lines(str, maxW); if (ls.length <= maxLines || sz <= szMin) break; sz -= 4; }
+  const lh = sz * 1.18, y0 = cy - (ls.length - 1) * lh / 2;
+  ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ls.forEach((l, i) => ctx.fillText(l, cx, y0 + i * lh));
+}
+function pxpath(x, y, w, h, n) {
+  ctx.beginPath(); ctx.moveTo(x + n, y); ctx.lineTo(x + w - n, y); ctx.lineTo(x + w - n, y + n); ctx.lineTo(x + w, y + n);
+  ctx.lineTo(x + w, y + h - n); ctx.lineTo(x + w - n, y + h - n); ctx.lineTo(x + w - n, y + h); ctx.lineTo(x + n, y + h);
+  ctx.lineTo(x + n, y + h - n); ctx.lineTo(x, y + h - n); ctx.lineTo(x, y + n); ctx.lineTo(x + n, y + n); ctx.closePath();
+}
+function box(x, y, w, h, fill, o) {
+  o = o || {}; const n = o.n || 10, sh = o.sh === undefined ? 10 : o.sh;
+  if (sh) { ctx.fillStyle = 'rgba(90,70,50,0.28)'; pxpath(x + sh, y + sh, w, h, n); ctx.fill(); }
+  ctx.fillStyle = fill; pxpath(x, y, w, h, n); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(x + n, y + 6, w - 2 * n, 8);
+  ctx.lineWidth = o.bw || 8; ctx.strokeStyle = o.border || C.ink; ctx.lineJoin = 'miter'; pxpath(x, y, w, h, n); ctx.stroke();
+}
+function btn(id, x, y, w, h, label, o) {
+  o = o || {}; btns.push({ id, x, y, w, h });
+  const sel = selId === id, p = sel ? 6 + Math.sin(t * 8) * 4 : 0;
+  box(x - p, y - p, w + 2 * p, h + 2 * p, o.fill || C.gold2, { border: sel ? C.gold : C.ink, bw: sel ? 12 : 8, sh: sel ? 14 : 10 });
+  if (sel) { ctx.lineWidth = 4; ctx.strokeStyle = C.ink; pxpath(x - p - 10, y - p - 10, w + 2 * p + 20, h + 2 * p + 20, 12); ctx.stroke(); }
+  const cy = y + h / 2 - (o.sub ? h * 0.09 : 0);
+  const sz = fitSize(label, w - 50, o.size || 64, o.fam || SOFT);
+  T(label, x + w / 2, cy, sz, o.fam || SOFT, o.color || C.ink);
+  if (o.sub) T(o.sub, x + w / 2, y + h * 0.78, Math.min(o.subSize || 34, h * 0.2), SOFT, C.ink);
+}
+function catColor(i) { return PASTELS[i % PASTELS.length]; }
+
+// ---------- Fondo retro ----------
+const scan = document.createElement('canvas'); scan.width = 4; scan.height = 4;
+{ const s = scan.getContext('2d'); s.fillStyle = 'rgba(90,70,50,0.07)'; s.fillRect(0, 3, 4, 1); }
+const stars = []; for (let i = 0; i < 46; i++) stars.push({ x: rnd(VW), y: rnd(VH), ph: rnd(628) / 100, s: 6 + rnd(3) * 4 });
+function drawBg() {
+  ctx.fillStyle = C.bg; ctx.fillRect(-OX / SC, -OY / SC, cv.width / SC, cv.height / SC);
+  const sz = 80, off = (t * 18) % (sz * 2);
+  ctx.fillStyle = C.bg2;
+  for (let y = -sz; y < VH + sz; y += sz) for (let x = -sz * 2; x < VW + sz; x += sz * 2) {
+    const row = Math.round(y / sz) & 1; ctx.fillRect(x + off + (row ? sz : 0), y, sz, sz);
+  }
+  stars.forEach(s => {
+    const a = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.5 + s.ph)); ctx.fillStyle = 'rgba(201,162,75,' + a.toFixed(2) + ')';
+    ctx.fillRect(s.x - s.s / 2, s.y - 2, s.s, 4); ctx.fillRect(s.x - 2, s.y - s.s / 2, 4, s.s);
+  });
+}
+function drawScan() {
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = ctx.createPattern(scan, 'repeat'); ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore();
+}
+
+// ---------- Entrada ----------
 function keyOf(e) {
   const c = e.keyCode, k = e.key;
-  if (k === 'ArrowLeft'  || c === 37 || c === 21) return 'L';
-  if (k === 'ArrowUp'    || c === 38 || c === 19) return 'U';
+  if (k === 'ArrowLeft' || c === 37 || c === 21) return 'L';
+  if (k === 'ArrowUp' || c === 38 || c === 19) return 'U';
   if (k === 'ArrowRight' || c === 39 || c === 22) return 'R';
-  if (k === 'ArrowDown'  || c === 40 || c === 20) return 'D';
+  if (k === 'ArrowDown' || c === 40 || c === 20) return 'D';
   if (k === 'Enter' || k === ' ' || c === 13 || c === 23 || c === 66 || c === 32) return 'OK';
-  if (k === 'Escape' || k === 'Backspace' || c === 27 || c === 8 || c === 4) return 'BACK';
   return null;
 }
+function navigate(dir) {
+  if (!btns.length) return;
+  const cur = btns.find(b => b.id === selId);
+  if (!cur) { selId = btns[0].id; return; }
+  const cx = cur.x + cur.w / 2, cy = cur.y + cur.h / 2; let best = null, bs = 1e9;
+  btns.forEach(b => {
+    if (b === cur) return;
+    const dx = b.x + b.w / 2 - cx, dy = b.y + b.h / 2 - cy;
+    const along = dir === 'L' ? -dx : dir === 'R' ? dx : dir === 'U' ? -dy : dy;
+    if (along <= 5) return;
+    const perp = (dir === 'L' || dir === 'R') ? Math.abs(dy) : Math.abs(dx);
+    const s = along + perp * 2.5; if (s < bs) { bs = s; best = b; }
+  });
+  if (best) { selId = best.id; play('tick'); }
+}
 addEventListener('keydown', e => {
-  const k = keyOf(e); if (!k) return;
-  e.preventDefault();
-  if (k === 'OK') { if (!e.repeat) { lastKeyOk = performance.now(); ok(); } return; }
-  if (k === 'BACK') { if (!e.repeat) back(); return; }
-  held[k] = true;
+  const k = keyOf(e); if (!k) return; e.preventDefault();
+  if (k === 'OK') { if (!e.repeat) { lastKeyOk = performance.now(); if (scr === 'fact') act(selId === 'home' ? 'home' : null); else if (selId) act(selId); } return; }
+  if (!e.repeat || true) navigate(k);
 });
-addEventListener('keyup', e => { const k = keyOf(e); if (k && held[k] !== undefined) held[k] = false; });
-addEventListener('blur', () => { for (const k in held) held[k] = false; });
-
-function pointOf(e) {
+function vpt(e) {
   const r = cv.getBoundingClientRect();
-  const cx = (e.clientX - r.left) * (cv.width / r.width), cy = (e.clientY - r.top) * (cv.height / r.height);
-  const x = (cx - PX) / S, y = (cy - PY) / S;
-  return { x, y, out: x < 0 || y < 0 || x > IMG_W || y > IMG_H, t: performance.now() };
+  const px = (e.clientX - r.left) * (cv.width / r.width), py = (e.clientY - r.top) * (cv.height / r.height);
+  return { x: (px - OX) / SC, y: (py - OY) / SC, t: performance.now() };
 }
-function pointTo(e) {
-  const p = pointOf(e); lastPoint = p;
-  cursor.x = Math.min(IMG_W, Math.max(0, p.x)); cursor.y = Math.min(IMG_H, Math.max(0, p.y));
-  return p;
-}
-['mousemove', 'pointermove', 'mousedown', 'pointerdown', 'mouseover'].forEach(n =>
-  cv.addEventListener(n, e => { if (st === 'aim') pointTo(e); }));
+function hit(p) { const s = 8; return btns.find(b => p.x >= b.x - s && p.x <= b.x + b.w + s && p.y >= b.y - s && p.y <= b.y + b.h + s); }
+let lastPt = null;
+['mousemove', 'pointermove', 'mousedown', 'pointerdown', 'mouseover'].forEach(n => cv.addEventListener(n, e => {
+  const p = vpt(e); lastPt = p; const b = hit(p); if (b) selId = b.id;
+}));
 cv.addEventListener('click', e => {
   if (performance.now() - lastKeyOk < 400) return;
-  {
-    const r = cv.getBoundingClientRect(), b = restartBtn();
-    const px = (e.clientX - r.left) * (cv.width / r.width), py = (e.clientY - r.top) * (cv.height / r.height);
-    if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) { restartGame(); return; }
-  }
-  if (st === 'lose') { if (revealT > 0.5) startChallenge(); return; }
-  if (st === 'aim') {
-    // si el puntero ya nos dijo dónde está hace poco, ese dato manda; si no, usamos las coordenadas del clic
-    const p = (lastPoint && performance.now() - lastPoint.t < 1500) ? lastPoint : pointTo(e);
-    cursor.x = Math.min(IMG_W, Math.max(0, p.x)); cursor.y = Math.min(IMG_H, Math.max(0, p.y));
-    inject(p.out);
-    return;
-  }
-  ok();
+  const p = (lastPt && performance.now() - lastPt.t < 1500) ? lastPt : vpt(e);
+  let b = hit(p);
+  if (scr === 'fact' && !b) { act(null); return; }
+  const prim = btns.filter(x => x.id !== 'home');
+  if (!b && prim.length === 1) b = prim[0];          // pantallas con un solo botón: clic en cualquier parte
+  if (b) { selId = b.id; act(b.id); }
 });
 
-// ---------- Dibujo ----------
-const sx = x => PX + x * S, sy = y => PY + y * S;
 
-function rrect(x, y, w, h, r) {
-  ctx.beginPath(); ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+const FACTS = [];
+let factNext = null;
+let t = 0, now = 0, lastKeyOk = -1e9, lockUntil = 0;
+let scr = 'menu', scrT = 0, selId = 'g0', btns = [];
+const GAMES = [
+  { file: 'botox.html', name: 'PONLE BOTOX A SHEI', sub: 'Apunta con el control y tunea la cara', fill: C.pink },
+  { file: 'charadas.html', name: 'CHARADAS CUMPLEAÑERAS', sub: 'Parejas, 60 segundos y mucha mímica', fill: C.mint },
+  { file: 'poses.html', name: 'ESCULTORES CUMPLEAÑEROS', sub: 'Memoriza la pose y moldea al títere', fill: C.lav },
+];
+function act(id) {
+  if (performance.now() < lockUntil || !id) return;
+  const i = +String(id).slice(1); if (GAMES[i]) { play('start'); location.href = GAMES[i].file; }
 }
-function wrap(txt, x, y, maxW, lh) {
-  const words = txt.split(' '); let line = '';
-  for (const w of words) {
-    const test = line ? line + ' ' + w : w;
-    if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; }
-    else line = test;
-  }
-  ctx.fillText(line, x, y); return y + lh;
+function sMenu() {
+  const bob = Math.sin(t * 3) * 6;
+  box(260, 40 + bob, 1400, 190, C.white, { sh: 14, bw: 10 });
+  T('¡FELIZ CUMPLEAÑOS!', VW / 2, 105 + bob, fitSize('¡FELIZ CUMPLEAÑOS!', 1320, 74, PIX), PIX, C.gold);
+  T('SELECCIONAR JUEGO', VW / 2, 185 + bob, fitSize('SELECCIONAR JUEGO', 1320, 36, PIX), PIX, C.ink);
+  GAMES.forEach((g, i) => btn('g' + i, 310, 290 + i * 245, 1300, 210, g.name, { fill: g.fill, size: 74, sub: g.sub, subSize: 36 }));
 }
-function text(s, x, y, size, color, align, weight) {
-  ctx.font = (weight || 'bold') + ' ' + Math.round(size * u) + 'px Arial,Helvetica,sans-serif';
-  ctx.fillStyle = color || '#fff'; ctx.textAlign = align || 'left'; ctx.fillText(s, x, y);
-}
-function banner(s, cx, cy, size, fill, stroke, rot) {
-  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot || 0);
-  ctx.font = 'bold ' + Math.round(size) + 'px Arial'; ctx.textAlign = 'center';
-  ctx.lineWidth = 10 * u; ctx.lineJoin = 'round'; ctx.strokeStyle = stroke; ctx.strokeText(s, 0, 0);
-  ctx.fillStyle = fill; ctx.fillText(s, 0, 0); ctx.restore();
-}
-
-function drawBg() {
-  const g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, '#FBF3E4'); g.addColorStop(1, '#EBDCBF');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-}
-function drawPhoto() {
-  ctx.save();
-  rrect(PX - 6 * u, PY - 6 * u, IMG_W * S + 12 * u, IMG_H * S + 12 * u, 18 * u);
-  ctx.fillStyle = st === 'lose' ? '#E39A92' : '#C9A24B'; ctx.fill(); ctx.restore();
-  ctx.save(); rrect(PX, PY, IMG_W * S, IMG_H * S, 12 * u); ctx.clip();
-  if (st !== 'loading') ctx.drawImage(wc, PX, PY, IMG_W * S, IMG_H * S);
-  else { ctx.fillStyle = '#444'; ctx.fillRect(PX, PY, IMG_W * S, IMG_H * S); }
-  ctx.restore();
-}
-
-function drawSyringe(x, y, k) {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI / 4); ctx.scale(k, k);
-  ctx.strokeStyle = '#d8d8d8'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(70, 0); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(70, -14, 130, 28);
-  ctx.fillStyle = '#ff4fa3'; ctx.fillRect(74, -10, 90, 20);
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.strokeRect(70, -14, 130, 28);
-  for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(90 + i * 22, -14); ctx.lineTo(90 + i * 22, -6); ctx.stroke(); }
-  ctx.fillStyle = '#eee'; ctx.fillRect(198, -26, 8, 52); ctx.strokeRect(198, -26, 8, 52);
-  ctx.fillStyle = '#bbb'; ctx.fillRect(206, -5, 70, 10);
-  ctx.fillStyle = '#eee'; ctx.fillRect(274, -18, 9, 36); ctx.strokeRect(274, -18, 9, 36);
-  ctx.restore();
-  ctx.beginPath(); ctx.arc(x, y, 5 * u, 0, 7); ctx.fillStyle = '#ff2d2d'; ctx.fill();
-}
-const syringeK = () => u * 0.85 * (S / 0.66);
-
-function drawLeft() {
-  const x = 30 * u, w = PX - 60 * u;
-  text('PONLE BOTOX', x + w / 2, 110 * u, 54, '#C9A24B', 'center');
-  text('A SHEI', x + w / 2, 175 * u, 70, '#5A4632', 'center');
-  if (st === 'loading') return;
-  text('Intento ' + attempt, x, 300 * u, 40, '#B58A2E');
-}
-
-function drawRestart() {
-  const b = restartBtn();
-  ctx.fillStyle = 'rgba(201,162,75,0.25)'; rrect(b.x, b.y, b.w, b.h, 18 * u); ctx.fill();
-  ctx.lineWidth = 3 * u; ctx.strokeStyle = 'rgba(90,70,50,0.65)'; rrect(b.x, b.y, b.w, b.h, 18 * u); ctx.stroke();
-  text('REINICIAR', b.x + b.w / 2, b.y + b.h / 2 + 11 * u, 30, '#5A4632', 'center');
-}
-
-function drawRight() {
-  const x = PX + IMG_W * S + 30 * u, w = W - x - 30 * u;
-  ctx.textAlign = 'left';
-  if (st === 'aim') {
-    text('¡Ahora!', x, 200 * u, 56, '#5A4632');
-    ctx.font = Math.round(32 * u) + 'px Arial'; ctx.fillStyle = '#7A6248';
-    wrap('Mueve el círculo y haz clic para inyectar.', x, 270 * u, w, 44 * u);
-    ctx.fillStyle = '#C0574D';
-    wrap('Pierdes si haces clic fuera de la foto, en el pelo, la frente o el fondo, o si repites una zona.', x, 400 * u, w, 44 * u);
-    const frac = Math.max(0, timeLeft / TURN_SECONDS);
-    ctx.fillStyle = 'rgba(90,70,50,0.14)'; rrect(x, 540 * u, w, 36 * u, 18 * u); ctx.fill();
-    ctx.fillStyle = frac > 0.3 ? '#8ED1A5' : '#E39A92'; rrect(x, 540 * u, Math.max(w * frac, 30 * u), 36 * u, 18 * u); ctx.fill();
-    text(Math.ceil(timeLeft) + ' s', x + w / 2, 640 * u, 64, frac > 0.3 ? '#5A4632' : '#D9695F', 'center');
-  } else if (st === 'reveal') {
-    text(result.zone ? result.zone.t : 'Sin efecto', x, 200 * u, 48, '#B58A2E');
-    ctx.font = Math.round(40 * u) + 'px Arial'; ctx.fillStyle = '#5A4632';
-    const y = wrap(result.msg, x, 290 * u, w, 54 * u);
-    text('Clic: siguiente intento', x, y + 60 * u, 32, '#D98FA0');
-  } else if (st === 'lose') {
-    ctx.font = Math.round(40 * u) + 'px Arial'; ctx.fillStyle = '#C0574D';
-    const y = wrap(result.msg, x, 290 * u, w, 54 * u);
-    const pulse = 1 + 0.04 * Math.sin(t * 7);
-    ctx.fillStyle = '#F2A7A0'; rrect(x, y + 50 * u, w, 100 * u, 24 * u); ctx.fill();
-    text('Clic: revelar tu reto :(', x + w / 2, y + 50 * u + 62 * u, 32 * pulse, '#5A4632', 'center');
-  }
-}
-
-function drawChallenge() {
-  const g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, '#F8EBDD'); g.addColorStop(1, '#EBDCBF');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  text(chall.kind === 'q' ? 'PREGUNTA SOBRE LA CUMPLEAÑERA' : 'RETO POR SER PERDEDOR :(', W / 2, 120 * u, 56, '#C0574D', 'center');
-  ctx.font = 'bold ' + Math.round(96 * u) + 'px Arial'; ctx.fillStyle = '#5A4632'; ctx.textAlign = 'center';
-  const y = wrap(chall.t, W / 2, 300 * u, W * 0.8, 110 * u);
-  const sub = chall.kind === 'q' ? 'Respóndela sin ayuda en ' + chall.secs + ' segundos. Si fallas: ¡SHOT!'
-    : chall.shot ? 'Tienes ' + chall.secs + ' segundos. Si no lo cumples: ¡SHOT!' : 'Tienes ' + chall.secs + ' segundos.';
-  text(sub, W / 2, y + 30 * u, 40, '#B58A2E', 'center');
-  if (cPhase === 'ready') {
-    const pulse = 1 + 0.05 * Math.sin(t * 6);
-    text('Clic para iniciar el cronómetro', W / 2, 900 * u, 52 * pulse, '#5A4632', 'center');
-  } else if (cPhase === 'run') {
-    const low = challT <= 5;
-    text(String(Math.ceil(challT)), W / 2, 800 * u, 260, low ? '#D9695F' : '#5A4632', 'center');
-    text(chall.kind === 'q' ? 'Clic si acertaste' : 'Clic cuando lo cumplas', W / 2, 960 * u, 40, '#7A6248', 'center', 'normal');
-  } else if (cDone === 'ok') {
-    banner(chall.kind === 'q' ? '¡ACERTASTE!' : '¡RETO CUMPLIDO!', W / 2, 760 * u, 130 * u, '#8ED1A5', '#2F6B49', -0.04);
-    text('Clic para continuar', W / 2, 940 * u, 40, '#7A6248', 'center', 'normal');
-  } else {
-    banner('¡SE ACABÓ EL TIEMPO!', W / 2, 700 * u, 100 * u, '#E39A92', '#7a2a24', -0.04);
-    text(chall.shot ? '¡A TOMAR EL SHOT!' : '¡FONDO BLANCO YA!', W / 2, 860 * u, 90, '#B58A2E', 'center');
-    text('Clic para continuar', W / 2, 980 * u, 36, '#7A6248', 'center', 'normal');
-  }
-}
-
 function frame() {
-  if (cv.width !== innerWidth || cv.height !== innerHeight) resize();
-  const dt = 0.016; t += dt;
-
-  if (st === 'aim') {
-    const dx = (held.R ? 1 : 0) - (held.L ? 1 : 0), dy = (held.D ? 1 : 0) - (held.U ? 1 : 0);
-    if (dx || dy) holdT += dt; else holdT = 0;
-    const sp = 260 + Math.min(holdT, 1.5) * 600, n = Math.hypot(dx, dy) || 1;
-    cursor.x = Math.min(IMG_W, Math.max(0, cursor.x + dx / n * sp * dt));
-    cursor.y = Math.min(IMG_H, Math.max(0, cursor.y + dy / n * sp * dt));
-    const before = Math.ceil(timeLeft); timeLeft -= dt;
-    if (timeLeft <= 5 && Math.ceil(timeLeft) !== before) sndTick();
-    if (timeLeft <= 0) lose('Se acabó el tiempo.', 'time');
-  }
-  if (st === 'chall' && cPhase === 'run') {
-    const b4 = Math.ceil(challT); challT -= dt;
-    if (challT <= 5 && Math.ceil(challT) !== b4) sndTick();
-    if (challT <= 0) { challT = 0; cPhase = 'done'; cDone = 'time'; sndBuzz(); }
-  }
-  if (st === 'reveal' || st === 'lose') {
-    revealT += dt;
-    if (blend) {
-      const p = Math.min(1, revealT / 1.3);
-      stepBlend(p);
-      if (p >= 1) blend = null;
-    }
-  }
-
-  ctx.save();
-  const shaking = (st === 'reveal' || st === 'lose') && revealT < 0.7;
-  if (shaking) { const a = 14 * u * (1 - revealT / 0.7); ctx.translate((Math.random() - 0.5) * a, (Math.random() - 0.5) * a); }
-  drawBg(); drawPhoto(); drawLeft(); drawRight();
-
-  if (st === 'aim') drawSyringe(sx(cursor.x), sy(cursor.y), syringeK());
-  if (st === 'reveal') {
-    if (result.zone) drawSyringe(sx(cursor.x), sy(cursor.y), syringeK());
-    if (revealT > 0.15 && revealT < 1.6 && result.zone) {
-      const k = Math.min(1, (revealT - 0.15) / 0.2);
-      banner('¡TUNEADA!', PX + IMG_W * S / 2, PY + IMG_H * S * 0.12,
-             Math.min((70 + 40 * k) * u, IMG_W * S * 0.17), '#ffe14d', '#7a0030', -0.12);
-    }
-  }
-  if (st === 'lose') {
-    ctx.save(); rrect(PX, PY, IMG_W * S, IMG_H * S, 12 * u); ctx.clip();
-    ctx.fillStyle = 'rgba(255,30,30,' + (0.35 * Math.min(1, revealT / 0.3)) + ')'; ctx.fillRect(PX, PY, IMG_W * S, IMG_H * S);
-    ctx.restore();
-    const k = Math.min(1, revealT / 0.25);
-    banner('UY,', PX + IMG_W * S / 2, PY + IMG_H * S * 0.42, Math.min(IMG_W * S * 0.28, 150 * u) * k, '#fff', '#7a0000', -0.1);
-    const out = loseWhy !== 'time';
-    banner(out ? 'PERDISTEEEE' : 'PERDISTE', PX + IMG_W * S / 2, PY + IMG_H * S * 0.55,
-           Math.min(IMG_W * S * (out ? 0.15 : 0.22), (out ? 85 : 120) * u) * k, '#ff4d4d', '#fff', -0.1);
-  }
-  ctx.restore();
-
-  if (st === 'chall') drawChallenge();
-  if (st === 'loading') {
-    ctx.fillStyle = 'rgba(251,243,228,0.92)'; ctx.fillRect(0, 0, W, H);
-    text('Cargando...', W / 2, H / 2, 70, '#C9A24B', 'center');
-  } else if (st === 'home') {
-    ctx.fillStyle = 'rgba(251,243,228,0.9)'; ctx.fillRect(0, 0, W, H);
-    text('PONLE BOTOX A SHEI', W / 2, 250 * u, 100, '#C9A24B', 'center');
-    text('Feliz cumpleaños', W / 2, 330 * u, 50, '#D98FA0', 'center');
-    const pulse = 1 + 0.06 * Math.sin(t * 5);
-    banner('READY?', W / 2, 600 * u, 230 * u * pulse, '#F5CBD2', '#5A4632', 0);
-    text('Tápale los ojos a quien juegue. Al hacer clic empieza el tiempo.', W / 2, 760 * u, 38, '#7A6248', 'center', 'normal');
-    text('Haz clic en cualquier parte', W / 2, 840 * u, 44, '#B58A2E', 'center');
-  }
-  if (st !== 'loading') drawRestart();
+  const nw = performance.now(), dt = Math.min(0.05, (nw - prev) / 1000); prev = nw; t += dt; scrT += dt; now = nw / 1000;
+  updateHeads(dt); updateMemes(dt); updateConf(dt);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(SC, 0, 0, SC, OX, OY);
+  drawBg(); drawHeads(10, 1); drawMemes();
+  btns = []; sMenu(); drawConf();
+  if (!btns.find(b => b.id === selId)) selId = 'g0';
+  drawScan();
   requestAnimationFrame(frame);
 }
+let prev = performance.now();
 requestAnimationFrame(frame);
 </script>
 </body>

@@ -461,6 +461,7 @@ function sFact() {
 }
 // ---------- Acciones ----------
 function act(id) {
+  if (id === 'home') { location.href = './'; return; }
   if (performance.now() < lockUntil) return;
   if (scr === 'fact') { if (scrT > 1.5) scrT = factDur; return; }
   switch (id) {
@@ -508,7 +509,7 @@ function navigate(dir) {
 }
 addEventListener('keydown', e => {
   const k = keyOf(e); if (!k) return; e.preventDefault();
-  if (k === 'OK') { if (!e.repeat) { lastKeyOk = performance.now(); if (scr === 'fact') act(null); else if (selId) act(selId); } return; }
+  if (k === 'OK') { if (!e.repeat) { lastKeyOk = performance.now(); if (scr === 'fact') act(selId === 'home' ? 'home' : null); else if (selId) act(selId); } return; }
   if (!e.repeat || true) navigate(k);
 });
 function vpt(e) {
@@ -523,10 +524,11 @@ let lastPt = null;
 }));
 cv.addEventListener('click', e => {
   if (performance.now() - lastKeyOk < 400) return;
-  if (scr === 'fact') { act(null); return; }
   const p = (lastPt && performance.now() - lastPt.t < 1500) ? lastPt : vpt(e);
   let b = hit(p);
-  if (!b && btns.length === 1) b = btns[0];          // pantallas con un solo botón: clic en cualquier parte
+  if (scr === 'fact' && !b) { act(null); return; }
+  const prim = btns.filter(x => x.id !== 'home');
+  if (!b && prim.length === 1) b = prim[0];          // pantallas con un solo botón: clic en cualquier parte
   if (b) { selId = b.id; act(b.id); }
 });
 
@@ -546,7 +548,8 @@ function frame() {
   btns = [];
   ({ title: sTitle, fact: sFact, setup: sSetup, intro: sIntro, flash: sFlash, mold: sMold, reveal: sReveal, verdict: sVerdict, final: sFinal })[scr]();
   drawConf();
-  if (!btns.find(b => b.id === selId) && btns.length) selId = btns.find(b => b.id === DEF[scr]) ? DEF[scr] : btns[0].id;
+  if (scr !== 'flash') btn('home', 20, 8, 210, 58, 'INICIO', { fill: C.white, size: 30 });
+  if (scr !== 'fact' && !btns.find(b => b.id === selId) && btns.length) selId = btns.find(b => b.id === DEF[scr]) ? DEF[scr] : btns[0].id;
   drawScan();
   requestAnimationFrame(frame);
 }
